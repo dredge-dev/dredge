@@ -1,0 +1,27 @@
+env:
+  variables:
+    GO_VERSION: 1.15.11
+    GOOS: darwin
+    GOARCH: amd64
+  runtimes:
+  - name: build-container
+    type: container
+    image: golang:${GO_VERSION}
+    cache:
+    - /go
+workflows:
+- name: build
+  description: Build the executable
+  steps:
+  - exec: go build -o drg
+    runtime: build-container
+- name: run
+  description: Run the executable
+  steps:
+  - exec: ./drg
+    runtime: build-container
+- name: test
+  description: Run the tests
+  steps:
+  - exec: go test
+    runtime: build-container
