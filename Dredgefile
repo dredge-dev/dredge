@@ -13,15 +13,23 @@ workflows:
 - name: build
   description: Build the executable
   steps:
-  - exec: go build -o drg
-    runtime: build-container
+  - shell:
+      cmd: go build -o drg
+      runtime: build-container
 - name: run
   description: Run the executable
   steps:
-  - exec: ./drg
-    runtime: build-container
+  - shell:
+      cmd: ./drg
+      runtime: build-container
 - name: test
   description: Run the tests
   steps:
-  - exec: go test
-    runtime: build-container
+  - shell:
+      cmd: go test ./...
+      runtime: build-container
+- name: install
+  description: Install drg
+  steps:
+  - shell:
+      cmd: cp drg /usr/local/bin
