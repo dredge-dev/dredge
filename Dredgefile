@@ -1,8 +1,6 @@
 env:
   variables:
-    GO_VERSION: 1.15.11
-    GOOS: darwin
-    GOARCH: amd64
+    GO_VERSION: 1.17
   runtimes:
   - name: build-container
     type: container
