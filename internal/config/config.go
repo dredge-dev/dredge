@@ -46,6 +46,7 @@ type Step struct {
 	Name     *string
 	Shell    *ShellStep
 	Template *TemplateStep
+	Browser  *string
 }
 
 type ShellStep struct {

@@ -42,6 +42,10 @@ buckets:
 - name: issue
   description: List, create, update issues for this project
   workflows:
+  - name: open
+    description: Open the issues ui
+    steps:
+    - browser: https://github.com/dredge-dev/dredge/issues
   - name: list
     description: List the open issues
     steps:
@@ -50,4 +54,13 @@ buckets:
         runtime: gh-cli
     - shell:
         cmd: gh issue list
+        runtime: gh-cli
+  - name: create
+    description: Create a new issue
+    steps:
+    - shell:
+        cmd: /bin/bash -c "gh auth status 2>/dev/null || gh auth login --hostname github.com"
+        runtime: gh-cli
+    - shell:
+        cmd: gh issue create
         runtime: gh-cli

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dredge-dev/dredge/internal/config"
+	"github.com/pkg/browser"
 )
 
 func ExecuteWorkflow(dredgeFile *config.DredgeFile, w config.Workflow) error {
@@ -34,6 +35,8 @@ func executeStep(dredgeFile *config.DredgeFile, workflow config.Workflow, step c
 		return executeShellStep(dredgeFile, workflow, step.Shell, env)
 	} else if step.Template != nil {
 		return executeTemplate(dredgeFile, workflow, step.Template, env)
+	} else if step.Browser != nil {
+		return openBrowser(*step.Browser)
 	}
 	return fmt.Errorf("No execution found for step.")
 }
@@ -44,4 +47,8 @@ func executeShellStep(dredgeFile *config.DredgeFile, workflow config.Workflow, s
 		return err
 	}
 	return runtime.Execute(shell.Cmd)
+}
+
+func openBrowser(url string) error {
+	return browser.OpenURL(url)
 }
