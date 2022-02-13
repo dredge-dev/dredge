@@ -10,8 +10,8 @@ import (
 )
 
 type Runtime struct {
-	Env     config.Env
-	Command string
+	Env      config.Env
+	Template string
 }
 
 func GetRuntime(env config.Env, name string) (*Runtime, error) {
@@ -73,13 +73,13 @@ func createContainerRuntime(e config.Env, r config.Runtime) (*Runtime, error) {
 	return &Runtime{
 		e,
 		fmt.Sprintf(
-			"docker run --rm %s %s %s -w %s -it %s ",
+			"docker run --rm %s %s %s -w %s -it %s ${cmd}",
 			strings.Join(envVars, " "), strings.Join(volumes, " "), strings.Join(ports, " "), workDir, r.Image),
 	}, nil
 }
 
 func createNativeRuntime(e config.Env, r config.Runtime) (*Runtime, error) {
-	return &Runtime{e, ""}, nil
+	return &Runtime{e, "${cmd}"}, nil
 }
 
 func (r *Runtime) Execute(command string) error {
@@ -92,7 +92,7 @@ func (r *Runtime) Execute(command string) error {
 }
 
 func (r *Runtime) getCommand(cmd string) string {
-	command := r.Command + cmd
+	command := strings.Replace(r.Template, "${cmd}", cmd, -1)
 
 	for variable, value := range r.Env.Variables {
 		command = strings.Replace(command, fmt.Sprintf("${%s}", variable), value, -1)

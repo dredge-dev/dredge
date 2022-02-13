@@ -5,16 +5,10 @@ import (
 	"os"
 
 	"github.com/dredge-dev/dredge/internal/config"
-	"github.com/spf13/cobra"
 )
 
-func ExecuteWorkflow(dredgeFile *config.DredgeFile, cmd *cobra.Command, args []string) error {
-	for _, w := range dredgeFile.Workflows {
-		if cmd.Name() == w.Name {
-			return executeWorkflow(dredgeFile, w)
-		}
-	}
-	return fmt.Errorf("Workflow %s is not defined", cmd.Name())
+func ExecuteWorkflow(dredgeFile *config.DredgeFile, w config.Workflow) error {
+	return executeWorkflow(dredgeFile, w)
 }
 
 func executeWorkflow(dredgeFile *config.DredgeFile, workflow config.Workflow) error {

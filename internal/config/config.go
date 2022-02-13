@@ -12,6 +12,7 @@ const DEFAULT_HOME = "/home"
 type DredgeFile struct {
 	Env       Env
 	Workflows []Workflow
+	Buckets   []Bucket
 }
 
 type Env struct {
@@ -26,6 +27,12 @@ type Runtime struct {
 	Home  *string
 	Cache []string
 	Ports []string
+}
+
+type Bucket struct {
+	Name        string
+	Description string
+	Workflows   []Workflow
 }
 
 type Workflow struct {
