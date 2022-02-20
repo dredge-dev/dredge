@@ -19,20 +19,26 @@ func init() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 }
 
+func GetRootCmd() *cobra.Command {
+	return rootCmd
+}
+
 func Init(dredgeFile *config.DredgeFile) {
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "exec <target>",
+		Short: "Execute a remote workflow",
+		Long:  "Execute a workflow from a remote Dredgefile",
+		RunE:  runExecCommand,
+	})
+	addWorkflows(dredgeFile, rootCmd)
+}
+
+func addWorkflows(dredgeFile *config.DredgeFile, targetCmd *cobra.Command) {
 	for _, w := range dredgeFile.Workflows {
-		rootCmd.AddCommand(createWorkflowCommand(dredgeFile, w))
+		targetCmd.AddCommand(createWorkflowCommand(dredgeFile, w))
 	}
 	for _, b := range dredgeFile.Buckets {
-		command := &cobra.Command{
-			Use:   b.Name,
-			Short: b.Description,
-			Long:  b.Description,
-		}
-		for _, w := range b.Workflows {
-			command.AddCommand(createWorkflowCommand(dredgeFile, w))
-		}
-		rootCmd.AddCommand(command)
+		targetCmd.AddCommand(createBucketCommand(dredgeFile, b))
 	}
 }
 
@@ -41,13 +47,22 @@ func createWorkflowCommand(dredgeFile *config.DredgeFile, w config.Workflow) *co
 		Use:   w.Name,
 		Short: w.Description,
 		Long:  w.Description,
-		Run: func(cmd *cobra.Command, args []string) {
-			err := workflow.ExecuteWorkflow(dredgeFile, w)
-			if err != nil {
-				panic(err)
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return workflow.ExecuteWorkflow(dredgeFile, w)
 		},
 	}
+}
+
+func createBucketCommand(dredgeFile *config.DredgeFile, b config.Bucket) *cobra.Command {
+	command := &cobra.Command{
+		Use:   b.Name,
+		Short: b.Description,
+		Long:  b.Description,
+	}
+	for _, w := range b.Workflows {
+		command.AddCommand(createWorkflowCommand(dredgeFile, w))
+	}
+	return command
 }
 
 func Execute() error {

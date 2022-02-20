@@ -76,6 +76,37 @@ func ReadDredgeFile(filename string) (*DredgeFile, error) {
 	return dredgeFile, nil
 }
 
+func (dredgeFile *DredgeFile) GetWorkflow(workflowName string) *Workflow {
+	for _, w := range dredgeFile.Workflows {
+		if w.Name == workflowName {
+			return &w
+		}
+	}
+	return nil
+}
+
+func (dredgeFile *DredgeFile) GetWorkflowInBucket(bucketName, workflowName string) *Workflow {
+	for _, b := range dredgeFile.Buckets {
+		if b.Name == bucketName {
+			for _, w := range b.Workflows {
+				if w.Name == workflowName {
+					return &w
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (dredgeFile *DredgeFile) GetBucket(bucketName string) *Bucket {
+	for _, b := range dredgeFile.Buckets {
+		if b.Name == bucketName {
+			return &b
+		}
+	}
+	return nil
+}
+
 func (s Step) Validate() bool {
 	numFields := 0
 
