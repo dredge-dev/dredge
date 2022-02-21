@@ -9,9 +9,9 @@ import (
 )
 
 func main() {
-	dredgeFile, err := config.ReadDredgeFile("Dredgefile")
+	dredgeFile, err := config.GetDredgeFile("./Dredgefile")
 	if err != nil {
-		fmt.Printf("Error while parsing Dredgefile: %s", err)
+		fmt.Printf("Error while reading Dredgefile: %s\n", err)
 		os.Exit(1)
 	}
 

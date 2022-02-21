@@ -1,43 +1,228 @@
 package config
 
 import (
+	"fmt"
+	"io/ioutil"
+	"math/rand"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
-func TestStepValidate(t *testing.T) {
-	stepName := "step"
+func TestGetDredgeFile(t *testing.T) {
+	df := DredgeFile{
+		Buckets: []Bucket{
+			{
+				Name: "b1",
+			},
+		},
+	}
+
+	tmpFile := fmt.Sprintf("./tmp-test-%d", rand.Intn(100000))
+	defer os.Remove(tmpFile)
+
+	data, err := yaml.Marshal(df)
+	if err != nil {
+		panic(err)
+	}
+
+	err = ioutil.WriteFile(tmpFile, data, 0644)
+	if err != nil {
+		panic(err)
+	}
 
 	tests := map[string]struct {
-		step  Step
-		valid bool
+		source     string
+		dredgeFile *DredgeFile
+		errMsg     string
 	}{
-		"no children": {
-			step:  Step{},
-			valid: false,
+		"local file": {
+			source:     tmpFile,
+			dredgeFile: &df,
+			errMsg:     "",
 		},
-		"only a name": {
-			step:  Step{Name: &stepName},
-			valid: false,
+		"file not found": {
+			source:     "./non-existing-file",
+			dredgeFile: nil,
+			errMsg:     "Error while parsing ./non-existing-file: open ./non-existing-file: no such file or directory",
 		},
-		"1 child": {
-			step:  Step{Shell: &ShellStep{Cmd: "cmd", Runtime: "runtime"}},
-			valid: true,
-		},
-		"1 child and a name": {
-			step:  Step{Name: &stepName, Shell: &ShellStep{Cmd: "cmd", Runtime: "runtime"}},
-			valid: true,
-		},
-		"2 children": {
-			step:  Step{Shell: &ShellStep{Cmd: "cmd", Runtime: "runtime"}, Template: &TemplateStep{Input: "input", Dest: "dst"}},
-			valid: false,
+		"unsupported": {
+			source:     "/hello",
+			dredgeFile: nil,
+			errMsg:     "Sources should start with ./",
 		},
 	}
 
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
-		assert.Equal(t, test.valid, test.step.Validate())
+		d, err := GetDredgeFile(test.source)
+		if test.dredgeFile == nil {
+			assert.Nil(t, d)
+		} else {
+			assert.Equal(t, test.dredgeFile.Buckets[0].Name, d.Buckets[0].Name)
+		}
+		if test.errMsg == "" {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, test.errMsg, fmt.Sprint(err))
+		}
+	}
+}
+
+func TestValidate(t *testing.T) {
+	tests := map[string]struct {
+		dredgeFile *DredgeFile
+		errorMsg   string
+	}{
+		"valid bucket": {
+			dredgeFile: &DredgeFile{
+				Buckets: []Bucket{
+					{
+						Name: "b1",
+					},
+				},
+			},
+			errorMsg: "",
+		},
+		"bucket without name": {
+			dredgeFile: &DredgeFile{
+				Buckets: []Bucket{
+					{},
+				},
+			},
+			errorMsg: "name field is required for bucket",
+		},
+		"bucket with invalid workflow": {
+			dredgeFile: &DredgeFile{
+				Buckets: []Bucket{
+					{
+						Name: "b1",
+						Workflows: []Workflow{
+							{},
+						},
+					},
+				},
+			},
+			errorMsg: "bucket b1: name field is required for workflow",
+		},
+		"workflow without name": {
+			dredgeFile: &DredgeFile{
+				Workflows: []Workflow{
+					{},
+				},
+			},
+			errorMsg: "name field is required for workflow",
+		},
+		"workflow with import": {
+			dredgeFile: &DredgeFile{
+				Workflows: []Workflow{
+					{
+						Name: "workflow",
+						Import: &ImportWorkflow{
+							Workflow: "test",
+						},
+					},
+				},
+			},
+			errorMsg: "",
+		},
+		"workflow with step": {
+			dredgeFile: &DredgeFile{
+				Workflows: []Workflow{
+					{
+						Name: "workflow",
+						Steps: []Step{
+							{
+								Shell: &ShellStep{
+									Cmd: "test",
+								},
+							},
+						},
+					},
+				},
+			},
+			errorMsg: "",
+		},
+		"workflow no steps no import": {
+			dredgeFile: &DredgeFile{
+				Workflows: []Workflow{
+					{
+						Name: "w1",
+					},
+				},
+			},
+			errorMsg: "workflow w1: no steps or import defined",
+		},
+		"workflow with steps and import": {
+			dredgeFile: &DredgeFile{
+				Workflows: []Workflow{
+					{
+						Name: "w1",
+						Import: &ImportWorkflow{
+							Workflow: "w2",
+						},
+						Steps: []Step{
+							{
+								Shell: &ShellStep{
+									Cmd: "test",
+								},
+							},
+						},
+					},
+				},
+			},
+			errorMsg: "workflow w1: contains both steps and an import",
+		},
+	}
+
+	for testName, test := range tests {
+		t.Logf("Running test case %s", testName)
+		err := test.dredgeFile.Validate()
+		if test.errorMsg == "" {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, test.errorMsg, fmt.Sprint(err))
+		}
+	}
+}
+
+func TestStepValidate(t *testing.T) {
+	tests := map[string]struct {
+		step     Step
+		errorMsg string
+	}{
+		"no children": {
+			step:     Step{},
+			errorMsg: "step  does not contain an action",
+		},
+		"only a name": {
+			step:     Step{Name: "s1"},
+			errorMsg: "step s1 does not contain an action",
+		},
+		"1 child": {
+			step:     Step{Shell: &ShellStep{Cmd: "cmd", Runtime: "runtime"}},
+			errorMsg: "",
+		},
+		"1 child and a name": {
+			step:     Step{Name: "step", Shell: &ShellStep{Cmd: "cmd", Runtime: "runtime"}},
+			errorMsg: "",
+		},
+		"2 children": {
+			step:     Step{Shell: &ShellStep{Cmd: "cmd", Runtime: "runtime"}, Template: &TemplateStep{Input: "input", Dest: "dst"}},
+			errorMsg: "step  contains more than 1 action",
+		},
+	}
+
+	for testName, test := range tests {
+		t.Logf("Running test case %s", testName)
+		err := test.step.Validate()
+		if test.errorMsg == "" {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, test.errorMsg, fmt.Sprint(err))
+		}
 	}
 }
 
@@ -68,55 +253,24 @@ func TestGetHome(t *testing.T) {
 func TestGetWorkflow(t *testing.T) {
 	w1 := Workflow{Name: "first"}
 	w2 := Workflow{Name: "second"}
+	w3 := Workflow{Name: "third"}
+	w4 := Workflow{Name: "fourth"}
 	dredgeFile := &DredgeFile{
 		Workflows: []Workflow{
 			w1,
 			w2,
 		},
-	}
-
-	tests := map[string]struct {
-		name     string
-		workflow *Workflow
-	}{
-		"first": {
-			name:     "first",
-			workflow: &w1,
-		},
-		"second": {
-			name:     "second",
-			workflow: &w2,
-		},
-		"not found": {
-			name:     "third",
-			workflow: nil,
-		},
-	}
-
-	for testName, test := range tests {
-		t.Logf("Running test case %s", testName)
-		w := dredgeFile.GetWorkflow(test.name)
-		assert.Equal(t, test.workflow, w)
-	}
-}
-
-func TestGetWorkflowInBucket(t *testing.T) {
-	w1 := Workflow{Name: "first"}
-	w2 := Workflow{Name: "second"}
-	w3 := Workflow{Name: "third"}
-	dredgeFile := &DredgeFile{
 		Buckets: []Bucket{
 			{
 				Name: "b1",
 				Workflows: []Workflow{
-					w1,
-					w2,
+					w3,
 				},
 			},
 			{
 				Name: "b2",
 				Workflows: []Workflow{
-					w3,
+					w4,
 				},
 			},
 		},
@@ -127,25 +281,45 @@ func TestGetWorkflowInBucket(t *testing.T) {
 		workflowName string
 		workflow     *Workflow
 	}{
-		"first should be in b1": {
-			bucketName:   "b1",
+		"first": {
+			bucketName:   "",
 			workflowName: "first",
 			workflow:     &w1,
 		},
-		"first should not be in b2": {
-			bucketName:   "b2",
-			workflowName: "first",
-			workflow:     nil,
-		},
 		"second": {
-			bucketName:   "b1",
+			bucketName:   "",
 			workflowName: "second",
 			workflow:     &w2,
 		},
-		"third": {
-			bucketName:   "b2",
+		"third is in default bucket": {
+			bucketName:   "",
+			workflowName: "third",
+			workflow:     nil,
+		},
+		"third should be in b1": {
+			bucketName:   "b1",
 			workflowName: "third",
 			workflow:     &w3,
+		},
+		"third should not be in b2": {
+			bucketName:   "b2",
+			workflowName: "third",
+			workflow:     nil,
+		},
+		"fourth should be in b2": {
+			bucketName:   "b2",
+			workflowName: "fourth",
+			workflow:     &w4,
+		},
+		"fifth does not exist in default": {
+			bucketName:   "",
+			workflowName: "fifth",
+			workflow:     nil,
+		},
+		"fifth does not exist in b1": {
+			bucketName:   "b1",
+			workflowName: "fifth",
+			workflow:     nil,
 		},
 		"bucket not found": {
 			bucketName:   "b3",
@@ -156,7 +330,7 @@ func TestGetWorkflowInBucket(t *testing.T) {
 
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
-		w := dredgeFile.GetWorkflowInBucket(test.bucketName, test.workflowName)
+		w := dredgeFile.GetWorkflow(test.bucketName, test.workflowName)
 		assert.Equal(t, test.workflow, w)
 	}
 }

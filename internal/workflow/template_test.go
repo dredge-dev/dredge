@@ -29,7 +29,7 @@ func TestExecuteTemplate(t *testing.T) {
 		},
 		Steps: []config.Step{
 			{
-				Name:     nil,
+				Name:     "",
 				Template: &step,
 			},
 		},
