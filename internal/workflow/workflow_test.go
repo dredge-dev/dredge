@@ -33,7 +33,10 @@ func TestExecuteShellStep(t *testing.T) {
 		},
 	}
 
-	err := ExecuteWorkflow(dredgeFile, *dredgeFile.GetWorkflow("", "workflow"))
+	workflow, err := dredgeFile.GetWorkflow("", "workflow")
+	assert.Nil(t, err)
+
+	err = ExecuteWorkflow(dredgeFile, *workflow)
 	assert.Nil(t, err)
 
 	_, err = os.Stat(tmpFile)
@@ -74,7 +77,10 @@ func TestImportWorkflowSameDedgeFile(t *testing.T) {
 		},
 	}
 
-	err := ExecuteWorkflow(dredgeFile, *dredgeFile.GetWorkflow("", "workflow"))
+	workflow, err := dredgeFile.GetWorkflow("", "workflow")
+	assert.Nil(t, err)
+
+	err = ExecuteWorkflow(dredgeFile, *workflow)
 	assert.Nil(t, err)
 
 	_, err = os.Stat(tmpFile)
@@ -127,7 +133,10 @@ func TestImportWorkflowDedgeFile(t *testing.T) {
 		},
 	}
 
-	err = ExecuteWorkflow(dredgeFile, *dredgeFile.GetWorkflow("", "workflow"))
+	workflow, err := dredgeFile.GetWorkflow("", "workflow")
+	assert.Nil(t, err)
+
+	err = ExecuteWorkflow(dredgeFile, *workflow)
 	assert.Nil(t, err)
 
 	_, err = os.Stat(tmpFile)

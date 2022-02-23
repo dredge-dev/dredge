@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/dredge-dev/dredge/internal/config"
 	"github.com/dredge-dev/dredge/internal/workflow"
@@ -28,20 +27,24 @@ func runExecCommand(cmd *cobra.Command, args []string) error {
 	} else {
 		var w *config.Workflow
 		if len(args) == 2 {
-			w = dredgeFile.GetWorkflow("", args[1])
-		} else {
-			w = dredgeFile.GetWorkflow(args[1], args[2])
-		}
-		if w != nil {
-			return workflow.ExecuteWorkflow(dredgeFile, *w)
-		}
-		if len(args) == 2 {
-			b := dredgeFile.GetBucket(args[1])
-			if b != nil {
-				cmd := createBucketCommand(dredgeFile, *b)
+			w, _ = dredgeFile.GetWorkflow("", args[1])
+			if w == nil {
+				b, _ := dredgeFile.GetBucket(args[1])
+				if err != nil {
+					return err
+				}
+				cmd, err := createBucketCommand(dredgeFile, *b)
+				if err != nil {
+					return err
+				}
 				return cmd.Help()
 			}
+			return workflow.ExecuteWorkflow(dredgeFile, *w)
 		}
-		return fmt.Errorf("Could not find workflow %s in %s", strings.Join(args[1:], "/"), args[0])
+		w, err = dredgeFile.GetWorkflow(args[1], args[2])
+		if err != nil {
+			return err
+		}
+		return workflow.ExecuteWorkflow(dredgeFile, *w)
 	}
 }

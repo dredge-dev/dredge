@@ -1,20 +1,29 @@
 package main
 
 import (
-	"fmt"
+	"errors"
+	"log"
 	"os"
 
 	"github.com/dredge-dev/dredge/internal/cmd"
 	"github.com/dredge-dev/dredge/internal/config"
 )
 
+const defaultDredgeFile = "./Dredgefile"
+
 func main() {
-	dredgeFile, err := config.GetDredgeFile("./Dredgefile")
-	if err != nil {
-		fmt.Printf("Error while reading Dredgefile: %s\n", err)
-		os.Exit(1)
+	var dredgeFile *config.DredgeFile
+	if _, err := os.Stat(defaultDredgeFile); errors.Is(err, os.ErrNotExist) {
+		dredgeFile = &config.DredgeFile{}
+	} else {
+		if dredgeFile, err = config.GetDredgeFile(defaultDredgeFile); err != nil {
+			log.Fatalf("Error while reading Dredgefile: %s\n", err)
+		}
 	}
 
-	cmd.Init(dredgeFile)
+	err := cmd.Init(dredgeFile)
+	if err != nil {
+		log.Fatalf("Error during init: %v", err)
+	}
 	cmd.Execute()
 }

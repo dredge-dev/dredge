@@ -8,15 +8,15 @@ import (
 	"github.com/pkg/browser"
 )
 
-func ExecuteWorkflow(dredgeFile *config.DredgeFile, w config.Workflow) error {
-	return executeWorkflow(dredgeFile, w)
+func ExecuteWorkflow(dredgeFile *config.DredgeFile, workflow config.Workflow) error {
+	d, w, err := dredgeFile.ResolveWorkflow(&workflow)
+	if err != nil {
+		return err
+	}
+	return executeWorkflow(d, *w)
 }
 
 func executeWorkflow(dredgeFile *config.DredgeFile, workflow config.Workflow) error {
-	if workflow.Import != nil {
-		return importWorkflow(dredgeFile, *workflow.Import)
-	}
-
 	env := NewEnv()
 	for input, description := range workflow.Inputs {
 		err := env.AddInput(input, description, os.Stdin)
@@ -32,24 +32,6 @@ func executeWorkflow(dredgeFile *config.DredgeFile, workflow config.Workflow) er
 		}
 	}
 	return nil
-}
-
-func importWorkflow(dredgeFile *config.DredgeFile, iw config.ImportWorkflow) error {
-	source := dredgeFile
-	if iw.Source != "" {
-		var err error
-		source, err = config.GetDredgeFile(iw.Source)
-		if err != nil {
-			return err
-		}
-	}
-
-	w := source.GetWorkflow(iw.Bucket, iw.Workflow)
-	if w == nil {
-		return fmt.Errorf("Could not find import workflow")
-	}
-
-	return ExecuteWorkflow(source, *w)
 }
 
 func executeStep(dredgeFile *config.DredgeFile, workflow config.Workflow, step config.Step, env Env) error {

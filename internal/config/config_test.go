@@ -94,6 +94,48 @@ func TestValidate(t *testing.T) {
 			},
 			errorMsg: "name field is required for bucket",
 		},
+		"bucket with import": {
+			dredgeFile: &DredgeFile{
+				Buckets: []Bucket{
+					{
+						Name: "b1",
+						Import: &ImportBucket{
+							Bucket: "b2",
+						},
+					},
+				},
+			},
+			errorMsg: "",
+		},
+		"bucket with invalid import": {
+			dredgeFile: &DredgeFile{
+				Buckets: []Bucket{
+					{
+						Name:   "b1",
+						Import: &ImportBucket{},
+					},
+				},
+			},
+			errorMsg: "bucket b1: bucket field is required for import",
+		},
+		"bucket with import and workflow": {
+			dredgeFile: &DredgeFile{
+				Buckets: []Bucket{
+					{
+						Name: "b1",
+						Import: &ImportBucket{
+							Bucket: "b2",
+						},
+						Workflows: []Workflow{
+							{
+								Name: "workflow",
+							},
+						},
+					},
+				},
+			},
+			errorMsg: "bucket b1: contains both workflows and an import",
+		},
 		"bucket with invalid workflow": {
 			dredgeFile: &DredgeFile{
 				Buckets: []Bucket{
@@ -280,58 +322,73 @@ func TestGetWorkflow(t *testing.T) {
 		bucketName   string
 		workflowName string
 		workflow     *Workflow
+		errMsg       string
 	}{
 		"first": {
 			bucketName:   "",
 			workflowName: "first",
 			workflow:     &w1,
+			errMsg:       "",
 		},
 		"second": {
 			bucketName:   "",
 			workflowName: "second",
 			workflow:     &w2,
+			errMsg:       "",
 		},
 		"third is in default bucket": {
 			bucketName:   "",
 			workflowName: "third",
 			workflow:     nil,
+			errMsg:       "Could not find workflow /third",
 		},
 		"third should be in b1": {
 			bucketName:   "b1",
 			workflowName: "third",
 			workflow:     &w3,
+			errMsg:       "",
 		},
 		"third should not be in b2": {
 			bucketName:   "b2",
 			workflowName: "third",
 			workflow:     nil,
+			errMsg:       "Could not find workflow b2/third",
 		},
 		"fourth should be in b2": {
 			bucketName:   "b2",
 			workflowName: "fourth",
 			workflow:     &w4,
+			errMsg:       "",
 		},
 		"fifth does not exist in default": {
 			bucketName:   "",
 			workflowName: "fifth",
 			workflow:     nil,
+			errMsg:       "Could not find workflow /fifth",
 		},
 		"fifth does not exist in b1": {
 			bucketName:   "b1",
 			workflowName: "fifth",
 			workflow:     nil,
+			errMsg:       "Could not find workflow b1/fifth",
 		},
 		"bucket not found": {
 			bucketName:   "b3",
 			workflowName: "first",
 			workflow:     nil,
+			errMsg:       "Could not find workflow b3/first",
 		},
 	}
 
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
-		w := dredgeFile.GetWorkflow(test.bucketName, test.workflowName)
+		w, err := dredgeFile.GetWorkflow(test.bucketName, test.workflowName)
 		assert.Equal(t, test.workflow, w)
+		if test.errMsg == "" {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, test.errMsg, fmt.Sprint(err))
+		}
 	}
 }
 
@@ -351,24 +408,67 @@ func TestGetBucket(t *testing.T) {
 	tests := map[string]struct {
 		bucketName string
 		bucket     *Bucket
+		errMsg     string
 	}{
 		"b1": {
 			bucketName: "b1",
 			bucket:     &b1,
+			errMsg:     "",
 		},
 		"b2": {
 			bucketName: "b2",
 			bucket:     &b2,
+			errMsg:     "",
 		},
 		"b3 not found": {
 			bucketName: "b3",
 			bucket:     nil,
+			errMsg:     "Could not find bucket b3",
 		},
 	}
 
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
-		b := dredgeFile.GetBucket(test.bucketName)
+		b, err := dredgeFile.GetBucket(test.bucketName)
 		assert.Equal(t, test.bucket, b)
+		if test.errMsg == "" {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, test.errMsg, fmt.Sprint(err))
+		}
+	}
+}
+
+func TestMergeSources(t *testing.T) {
+	tests := map[string]struct {
+		parent string
+		child  string
+		result string
+	}{
+		"parent without dir, child without dir": {
+			parent: "./test.Dredgefile",
+			child:  "./second.Dredgefile",
+			result: "./second.Dredgefile",
+		},
+		"parent with dir, child without dir": {
+			parent: "./parent/test.Dredgefile",
+			child:  "./second.Dredgefile",
+			result: "./parent/second.Dredgefile",
+		},
+		"parent without dir, child with dir": {
+			parent: "./test.Dredgefile",
+			child:  "./child/second.Dredgefile",
+			result: "./child/second.Dredgefile",
+		},
+		"parent with dir, child with dir": {
+			parent: "./parent/test.Dredgefile",
+			child:  "./child/second.Dredgefile",
+			result: "./parent/child/second.Dredgefile",
+		},
+	}
+
+	for testName, test := range tests {
+		t.Logf("Running test case %s", testName)
+		assert.Equal(t, test.result, mergeSources(test.parent, test.child))
 	}
 }

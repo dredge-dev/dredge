@@ -23,27 +23,39 @@ func GetRootCmd() *cobra.Command {
 	return rootCmd
 }
 
-func Init(dredgeFile *config.DredgeFile) {
+func Init(dredgeFile *config.DredgeFile) error {
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "exec <source>",
 		Short: "Execute a remote workflow",
 		Long:  "Execute a workflow from a remote Dredgefile",
 		RunE:  runExecCommand,
 	})
-	addWorkflows(dredgeFile, rootCmd)
+	return addWorkflows(dredgeFile, rootCmd)
 }
 
-func addWorkflows(dredgeFile *config.DredgeFile, cmd *cobra.Command) {
+func addWorkflows(dredgeFile *config.DredgeFile, cmd *cobra.Command) error {
 	for _, w := range dredgeFile.Workflows {
-		cmd.AddCommand(createWorkflowCommand(dredgeFile, w))
+		subCmd, err := createWorkflowCommand(dredgeFile, w)
+		if err != nil {
+			return err
+		}
+		cmd.AddCommand(subCmd)
 	}
 	for _, b := range dredgeFile.Buckets {
-		cmd.AddCommand(createBucketCommand(dredgeFile, b))
+		subCmd, err := createBucketCommand(dredgeFile, b)
+		if err != nil {
+			return err
+		}
+		cmd.AddCommand(subCmd)
 	}
+	return nil
 }
 
-func createWorkflowCommand(dredgeFile *config.DredgeFile, w config.Workflow) *cobra.Command {
-	description := w.GetDescription()
+func createWorkflowCommand(dredgeFile *config.DredgeFile, w config.Workflow) (*cobra.Command, error) {
+	description, err := dredgeFile.GetWorkflowDescription(w)
+	if err != nil {
+		return nil, err
+	}
 	return &cobra.Command{
 		Use:   w.Name,
 		Short: description,
@@ -51,19 +63,31 @@ func createWorkflowCommand(dredgeFile *config.DredgeFile, w config.Workflow) *co
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return workflow.ExecuteWorkflow(dredgeFile, w)
 		},
-	}
+	}, nil
 }
 
-func createBucketCommand(dredgeFile *config.DredgeFile, b config.Bucket) *cobra.Command {
+func createBucketCommand(dredgeFile *config.DredgeFile, b config.Bucket) (*cobra.Command, error) {
+	description, err := dredgeFile.GetBucketDescription(b)
+	if err != nil {
+		return nil, err
+	}
 	command := &cobra.Command{
 		Use:   b.Name,
-		Short: b.Description,
-		Long:  b.Description,
+		Short: description,
+		Long:  description,
 	}
-	for _, w := range b.Workflows {
-		command.AddCommand(createWorkflowCommand(dredgeFile, w))
+	workflows, err := dredgeFile.GetWorkflows(b)
+	if err != nil {
+		return nil, err
 	}
-	return command
+	for _, w := range workflows {
+		subCmd, err := createWorkflowCommand(dredgeFile, w)
+		if err != nil {
+			return nil, err
+		}
+		command.AddCommand(subCmd)
+	}
+	return command, nil
 }
 
 func Execute() error {
