@@ -5,28 +5,20 @@ import (
 	"os"
 
 	"github.com/dredge-dev/dredge/internal/config"
+	"github.com/dredge-dev/dredge/internal/exec"
 	"github.com/pkg/browser"
 )
 
-func ExecuteWorkflow(dredgeFile *config.DredgeFile, workflow config.Workflow) error {
-	d, w, err := dredgeFile.ResolveWorkflow(&workflow)
-	if err != nil {
-		return err
-	}
-	return executeWorkflow(d, *w)
-}
-
-func executeWorkflow(dredgeFile *config.DredgeFile, workflow config.Workflow) error {
-	env := NewEnv()
+func ExecuteWorkflow(workflow *exec.Workflow) error {
 	for input, description := range workflow.Inputs {
-		err := env.AddInput(input, description, os.Stdin)
+		err := workflow.Exec.Env.AddInput(input, description, os.Stdin)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, step := range workflow.Steps {
-		err := executeStep(dredgeFile, workflow, step, env)
+		err := executeStep(workflow, step)
 		if err != nil {
 			return err
 		}
@@ -34,25 +26,25 @@ func executeWorkflow(dredgeFile *config.DredgeFile, workflow config.Workflow) er
 	return nil
 }
 
-func executeStep(dredgeFile *config.DredgeFile, workflow config.Workflow, step config.Step, env Env) error {
+func executeStep(workflow *exec.Workflow, step config.Step) error {
 	if step.Shell != nil {
-		return executeShellStep(dredgeFile, workflow, step.Shell, env)
+		return executeShellStep(workflow, step.Shell)
 	} else if step.Template != nil {
-		return executeTemplate(dredgeFile, workflow, step.Template, env)
+		return executeTemplate(workflow, step.Template)
 	} else if step.Browser != nil {
-		return openBrowser(*step.Browser)
+		return openBrowser(workflow, step.Browser)
 	}
 	return fmt.Errorf("No execution found for step.")
 }
 
-func executeShellStep(dredgeFile *config.DredgeFile, workflow config.Workflow, shell *config.ShellStep, env Env) error {
-	runtime, err := GetRuntime(dredgeFile.Env, shell.Runtime)
+func executeShellStep(workflow *exec.Workflow, shell *config.ShellStep) error {
+	runtime, err := GetRuntime(workflow.Exec.DredgeFile.Env.Runtimes, shell.Runtime, workflow.Exec.Env)
 	if err != nil {
 		return err
 	}
 	return runtime.Execute(shell.Cmd)
 }
 
-func openBrowser(url string) error {
-	return browser.OpenURL(url)
+func openBrowser(workflow *exec.Workflow, b *config.BrowserStep) error {
+	return browser.OpenURL(b.Url)
 }

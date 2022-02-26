@@ -6,22 +6,25 @@ import (
 	"os"
 
 	"github.com/dredge-dev/dredge/internal/cmd"
-	"github.com/dredge-dev/dredge/internal/config"
+	"github.com/dredge-dev/dredge/internal/exec"
 )
 
-const defaultDredgeFile = "./Dredgefile"
+const defaultDredgefilePath = "./Dredgefile"
 
 func main() {
-	var dredgeFile *config.DredgeFile
-	if _, err := os.Stat(defaultDredgeFile); errors.Is(err, os.ErrNotExist) {
-		dredgeFile = &config.DredgeFile{}
+	source := defaultDredgefilePath
+	var de *exec.DredgeExec
+
+	if _, err := os.Stat(source); errors.Is(err, os.ErrNotExist) {
+		de = exec.EmptyExec()
 	} else {
-		if dredgeFile, err = config.GetDredgeFile(defaultDredgeFile); err != nil {
+		de, err = exec.NewExec(source)
+		if err != nil {
 			log.Fatalf("Error while reading Dredgefile: %s\n", err)
 		}
 	}
 
-	err := cmd.Init(dredgeFile)
+	err := cmd.Init(de)
 	if err != nil {
 		log.Fatalf("Error during init: %v", err)
 	}

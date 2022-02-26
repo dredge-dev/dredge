@@ -1,4 +1,4 @@
-package workflow
+package exec
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/dredge-dev/dredge/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,4 +49,20 @@ func TestAddInput(t *testing.T) {
 			os.Unsetenv(k)
 		}
 	}
+}
+
+func TestAddVariables(t *testing.T) {
+	env := NewEnv()
+	env["first"] = "set"
+
+	env.AddVariables(config.Env{
+		Variables: map[string]string{
+			"first":  "overwritten",
+			"second": "from vars",
+		},
+	})
+
+	assert.Equal(t, "set", env["first"])
+	assert.Equal(t, "from vars", env["second"])
+	assert.Equal(t, len(env), 2)
 }

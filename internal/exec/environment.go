@@ -1,16 +1,26 @@
-package workflow
+package exec
 
 import (
 	"bufio"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/dredge-dev/dredge/internal/config"
 )
 
 type Env map[string]string
 
 func NewEnv() Env {
 	return Env{}
+}
+
+func (e Env) AddVariables(ce config.Env) {
+	for key, value := range ce.Variables {
+		if _, ok := e[key]; !ok {
+			e[key] = value
+		}
+	}
 }
 
 func (e Env) AddInput(name string, description string, input io.Reader) error {
@@ -28,4 +38,12 @@ func (e Env) AddInput(name string, description string, input io.Reader) error {
 	}
 	e[name] = value
 	return nil
+}
+
+func (e Env) Clone() Env {
+	ret := NewEnv()
+	for key, value := range e {
+		ret[key] = value
+	}
+	return ret
 }

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dredge-dev/dredge/internal/config"
+	"github.com/dredge-dev/dredge/internal/exec"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,9 +20,10 @@ func TestExecuteTemplate(t *testing.T) {
 
 	step := config.TemplateStep{
 		Input: "Hello {{ .test }}",
-		Dest:  config.TemplateString(tmpFile),
+		Dest:  tmpFile,
 	}
-	workflow := config.Workflow{
+	workflow := &exec.Workflow{
+		Exec:        exec.EmptyExec(),
 		Name:        "workflow",
 		Description: "My workflow",
 		Inputs: map[string]string{
@@ -34,50 +36,44 @@ func TestExecuteTemplate(t *testing.T) {
 			},
 		},
 	}
-	dredgeFile := config.DredgeFile{
-		Env:       config.Env{},
-		Workflows: []config.Workflow{workflow},
-	}
 
-	env := NewEnv()
-	env["test"] = "world"
-
-	err := executeTemplate(&dredgeFile, workflow, &step, env)
+	os.Setenv("test", "value")
+	err := ExecuteWorkflow(workflow)
 	assert.Nil(t, err)
 
 	content, err := ioutil.ReadFile(tmpFile)
 	assert.Nil(t, err)
-	assert.Equal(t, "Hello world", string(content))
+	assert.Equal(t, "Hello value", string(content))
 }
 
 func TestTemplate(t *testing.T) {
 	tests := map[string]struct {
-		input  config.TemplateString
-		env    Env
+		input  string
+		env    exec.Env
 		output string
 		err    error
 	}{
 		"no replaces": {
 			input:  "test",
-			env:    NewEnv(),
+			env:    exec.NewEnv(),
 			output: "test",
 			err:    nil,
 		},
 		"variable": {
 			input:  "hello {{ .test }}",
-			env:    Env{"test": "world"},
+			env:    exec.Env{"test": "world"},
 			output: "hello world",
 			err:    nil,
 		},
 		"replace function": {
 			input:  "{{replace .test \" \" \"-\" }}",
-			env:    Env{"test": "hello world"},
+			env:    exec.Env{"test": "hello world"},
 			output: "hello-world",
 			err:    nil,
 		},
 		"date function": {
 			input:  "{{ date \"2006-01-02\" }}",
-			env:    Env{},
+			env:    exec.Env{},
 			output: time.Now().Format("2006-01-02"),
 			err:    nil,
 		},

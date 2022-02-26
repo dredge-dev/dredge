@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/dredge-dev/dredge/internal/config"
+	"github.com/dredge-dev/dredge/internal/exec"
 	"github.com/dredge-dev/dredge/internal/workflow"
 	"github.com/spf13/cobra"
 )
@@ -13,7 +13,7 @@ func runExecCommand(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Not enough arguments: missing source")
 	}
 
-	dredgeFile, err := config.GetDredgeFile(args[0])
+	de, err := exec.NewExec(args[0])
 	if err != nil {
 		return err
 	}
@@ -22,29 +22,29 @@ func runExecCommand(cmd *cobra.Command, args []string) error {
 		newCmd := &cobra.Command{
 			Use: "exec",
 		}
-		addWorkflows(dredgeFile, newCmd)
+		addWorkflows(de, newCmd)
 		return newCmd.Help()
 	} else {
-		var w *config.Workflow
+		var w *exec.Workflow
 		if len(args) == 2 {
-			w, _ = dredgeFile.GetWorkflow("", args[1])
+			w, _ = de.GetWorkflow("", args[1])
 			if w == nil {
-				b, _ := dredgeFile.GetBucket(args[1])
+				b, err := de.GetBucket(args[1])
 				if err != nil {
 					return err
 				}
-				cmd, err := createBucketCommand(dredgeFile, *b)
+				cmd, err := createBucketCommand(b)
 				if err != nil {
 					return err
 				}
 				return cmd.Help()
 			}
-			return workflow.ExecuteWorkflow(dredgeFile, *w)
+			return workflow.ExecuteWorkflow(w)
 		}
-		w, err = dredgeFile.GetWorkflow(args[1], args[2])
+		w, err = de.GetWorkflow(args[1], args[2])
 		if err != nil {
 			return err
 		}
-		return workflow.ExecuteWorkflow(dredgeFile, *w)
+		return workflow.ExecuteWorkflow(w)
 	}
 }

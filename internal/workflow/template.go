@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dredge-dev/dredge/internal/config"
+	"github.com/dredge-dev/dredge/internal/exec"
 )
 
 const TEMPLATE_NAME = "root"
@@ -22,7 +23,9 @@ var TEMPLATE_FUNCTIONS = template.FuncMap{
 	},
 }
 
-func executeTemplate(dredgeFile *config.DredgeFile, workflow config.Workflow, step *config.TemplateStep, env Env) error {
+func executeTemplate(workflow *exec.Workflow, step *config.TemplateStep) error {
+	env := workflow.Exec.Env
+
 	t, err := template.New(TEMPLATE_NAME).Funcs(TEMPLATE_FUNCTIONS).Parse(step.Input)
 	if err != nil {
 		return fmt.Errorf("Failed to parse template: %s", err)
@@ -45,7 +48,7 @@ func executeTemplate(dredgeFile *config.DredgeFile, workflow config.Workflow, st
 	return nil
 }
 
-func Template(input config.TemplateString, env Env) (string, error) {
+func Template(input string, env exec.Env) (string, error) {
 	t, err := template.New(TEMPLATE_NAME).Funcs(TEMPLATE_FUNCTIONS).Parse(string(input))
 	if err != nil {
 		return "", fmt.Errorf("Failed to parse template: %s", err)

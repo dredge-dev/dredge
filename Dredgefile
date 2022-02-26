@@ -4,7 +4,7 @@ env:
   runtimes:
   - name: build-container
     type: container
-    image: golang:${GO_VERSION}
+    image: golang:{{ .GO_VERSION }}
     cache:
     - /go
   - name: gh-cli
@@ -45,7 +45,8 @@ buckets:
   - name: open
     description: Open the issues ui
     steps:
-    - browser: https://github.com/dredge-dev/dredge/issues
+    - browser:
+        url: https://github.com/dredge-dev/dredge/issues
   - name: list
     description: List the open issues
     steps:

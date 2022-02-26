@@ -3,24 +3,25 @@ package workflow
 import (
 	"fmt"
 	"os"
-	"os/exec"
+	osExec "os/exec"
 	"strings"
 
 	"github.com/dredge-dev/dredge/internal/config"
+	"github.com/dredge-dev/dredge/internal/exec"
 )
 
 type Runtime struct {
-	Env      config.Env
+	Env      exec.Env
 	Template string
 }
 
-func GetRuntime(env config.Env, name string) (*Runtime, error) {
+func GetRuntime(runtimes []config.Runtime, name string, env exec.Env) (*Runtime, error) {
 	if name == "" {
 		return createDefaultRuntime(env)
 	}
-	for _, r := range env.Runtimes {
+	for _, r := range runtimes {
 		if name == r.Name {
-			runtime, err := createRuntime(env, r)
+			runtime, err := createRuntime(r, env)
 			if err != nil {
 				return nil, err
 			}
@@ -30,20 +31,20 @@ func GetRuntime(env config.Env, name string) (*Runtime, error) {
 	return nil, fmt.Errorf("Runtime %s is not defined", name)
 }
 
-func createDefaultRuntime(e config.Env) (*Runtime, error) {
-	return createRuntime(e, config.Runtime{Type: "native"})
+func createDefaultRuntime(e exec.Env) (*Runtime, error) {
+	return createRuntime(config.Runtime{Type: "native"}, e)
 }
 
-func createRuntime(e config.Env, r config.Runtime) (*Runtime, error) {
+func createRuntime(r config.Runtime, e exec.Env) (*Runtime, error) {
 	if r.Type == "container" {
-		return createContainerRuntime(e, r)
+		return createContainerRuntime(r, e)
 	} else if r.Type == "native" {
-		return createNativeRuntime(e, r)
+		return createNativeRuntime(r, e)
 	}
 	return nil, fmt.Errorf("Runtime type %s is not defined", r.Type)
 }
 
-func createContainerRuntime(e config.Env, r config.Runtime) (*Runtime, error) {
+func createContainerRuntime(r config.Runtime, e exec.Env) (*Runtime, error) {
 	workDir := r.GetHome()
 
 	currentDir, err := os.Getwd()
@@ -52,7 +53,7 @@ func createContainerRuntime(e config.Env, r config.Runtime) (*Runtime, error) {
 	}
 
 	var envVars []string
-	for variable, value := range e.Variables {
+	for variable, value := range e {
 		envVars = append(envVars, fmt.Sprintf("-e %s=%s", variable, value))
 	}
 
@@ -73,17 +74,17 @@ func createContainerRuntime(e config.Env, r config.Runtime) (*Runtime, error) {
 	return &Runtime{
 		e,
 		fmt.Sprintf(
-			"docker run --rm %s %s %s -w %s -it %s ${cmd}",
+			"docker run --rm %s %s %s -w %s -it %s {{ .cmd }}",
 			strings.Join(envVars, " "), strings.Join(volumes, " "), strings.Join(ports, " "), workDir, r.Image),
 	}, nil
 }
 
-func createNativeRuntime(e config.Env, r config.Runtime) (*Runtime, error) {
-	return &Runtime{e, "${cmd}"}, nil
+func createNativeRuntime(r config.Runtime, e exec.Env) (*Runtime, error) {
+	return &Runtime{e, "{{ .cmd }}"}, nil
 }
 
 func (r *Runtime) Execute(command string) error {
-	cmd := exec.Command("/bin/bash", "-c", r.getCommand(command))
+	cmd := osExec.Command("/bin/bash", "-c", r.getCommand(command))
 	cmd.Env = os.Environ()
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -92,10 +93,10 @@ func (r *Runtime) Execute(command string) error {
 }
 
 func (r *Runtime) getCommand(cmd string) string {
-	command := strings.Replace(r.Template, "${cmd}", cmd, -1)
+	command := strings.Replace(r.Template, "{{ .cmd }}", cmd, -1)
 
-	for variable, value := range r.Env.Variables {
-		command = strings.Replace(command, fmt.Sprintf("${%s}", variable), value, -1)
+	for variable, value := range r.Env {
+		command = strings.Replace(command, fmt.Sprintf("{{ .%s }}", variable), value, -1)
 	}
 
 	return command
