@@ -8,12 +8,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func runExecCommand(cmd *cobra.Command, args []string) error {
+func runExecCommand(e *exec.DredgeExec, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("Not enough arguments: missing source")
 	}
 
-	de, err := exec.NewExec(args[0])
+	de, err := e.Import(args[0])
 	if err != nil {
 		return err
 	}

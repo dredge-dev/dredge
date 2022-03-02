@@ -23,7 +23,7 @@ func TestExecuteTemplate(t *testing.T) {
 		Dest:  tmpFile,
 	}
 	workflow := &exec.Workflow{
-		Exec:        exec.EmptyExec(),
+		Exec:        exec.EmptyExec(""),
 		Name:        "workflow",
 		Description: "My workflow",
 		Inputs: map[string]string{

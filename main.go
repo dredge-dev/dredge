@@ -16,7 +16,7 @@ func main() {
 	var de *exec.DredgeExec
 
 	if _, err := os.Stat(source); errors.Is(err, os.ErrNotExist) {
-		de = exec.EmptyExec()
+		de = exec.EmptyExec(source)
 	} else {
 		de, err = exec.NewExec(source)
 		if err != nil {

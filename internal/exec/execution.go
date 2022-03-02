@@ -8,6 +8,7 @@ import (
 )
 
 type DredgeExec struct {
+	Parent     *DredgeExec
 	Source     string
 	DredgeFile *config.DredgeFile
 	Env        Env
@@ -28,9 +29,9 @@ type Workflow struct {
 	Steps       []config.Step
 }
 
-func EmptyExec() *DredgeExec {
+func EmptyExec(source string) *DredgeExec {
 	return &DredgeExec{
-		Source:     "",
+		Source:     source,
 		DredgeFile: &config.DredgeFile{},
 		Env:        NewEnv(),
 	}
@@ -56,8 +57,8 @@ func NewExec(source string) (*DredgeExec, error) {
 	}, nil
 }
 
-func (exec *DredgeExec) _import(source string) (*DredgeExec, error) {
-	fullSource := mergeSources(exec.Source, source)
+func (exec *DredgeExec) Import(source string) (*DredgeExec, error) {
+	fullSource := MergeSources(exec.Source, source)
 
 	imported, err := config.ReadDredgeFile(fullSource)
 	if err != nil {
@@ -68,14 +69,17 @@ func (exec *DredgeExec) _import(source string) (*DredgeExec, error) {
 	env.AddVariables(imported.Env)
 
 	return &DredgeExec{
+		Parent:     exec,
 		Source:     fullSource,
 		DredgeFile: imported,
 		Env:        env,
 	}, nil
 }
 
-func mergeSources(parent, child string) string {
-	if strings.HasPrefix(child, "./") {
+func MergeSources(parent, child string) string {
+	if child == "" {
+		return parent
+	} else if strings.HasPrefix(child, "./") {
 		if strings.HasPrefix(parent, "./") {
 			parentPath := strings.Split(parent, "/")
 			parentDir := parentPath[:len(parentPath)-1]
@@ -149,7 +153,7 @@ func (exec *DredgeExec) resolveBucket(b config.Bucket) (*Bucket, error) {
 		de := exec
 		if b.Import.Source != "" {
 			var err error
-			de, err = exec._import(b.Import.Source)
+			de, err = exec.Import(b.Import.Source)
 			if err != nil {
 				return nil, fmt.Errorf("Could not load Dredgefile %s: %v", b.Import.Source, err)
 			}
@@ -189,7 +193,7 @@ func (exec *DredgeExec) resolveWorkflow(w config.Workflow) (*Workflow, error) {
 		de := exec
 		if w.Import.Source != "" {
 			var err error
-			de, err = exec._import(w.Import.Source)
+			de, err = exec.Import(w.Import.Source)
 			if err != nil {
 				return nil, fmt.Errorf("Could not load Dredgefile %s: %v", w.Import.Source, err)
 			}

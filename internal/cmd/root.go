@@ -28,7 +28,9 @@ func Init(de *exec.DredgeExec) error {
 		Use:   "exec <source>",
 		Short: "Execute a remote workflow",
 		Long:  "Execute a workflow from a remote Dredgefile",
-		RunE:  runExecCommand,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runExecCommand(de, args)
+		},
 	})
 	return addWorkflows(de, rootCmd)
 }

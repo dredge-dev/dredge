@@ -33,8 +33,10 @@ func executeStep(workflow *exec.Workflow, step config.Step) error {
 		return executeTemplate(workflow, step.Template)
 	} else if step.Browser != nil {
 		return openBrowser(workflow, step.Browser)
+	} else if step.EditDredgeFile != nil {
+		return executeEditDredgeFile(workflow, step.EditDredgeFile)
 	}
-	return fmt.Errorf("No execution found for step.")
+	return fmt.Errorf("No execution found for step %v", step)
 }
 
 func executeShellStep(workflow *exec.Workflow, shell *config.ShellStep) error {

@@ -231,11 +231,16 @@ func TestMergeSources(t *testing.T) {
 			child:  "./child/second.Dredgefile",
 			result: "./parent/child/second.Dredgefile",
 		},
+		"empty parent, child": {
+			parent: "",
+			child:  "./child/Dredgefile",
+			result: "./child/Dredgefile",
+		},
 	}
 
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
-		assert.Equal(t, test.result, mergeSources(test.parent, test.child))
+		assert.Equal(t, test.result, MergeSources(test.parent, test.child))
 	}
 }
 

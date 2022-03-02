@@ -17,7 +17,7 @@ func TestExecuteShellStep(t *testing.T) {
 	defer os.Remove(tmpFile)
 
 	workflow := &exec.Workflow{
-		Exec:        exec.EmptyExec(),
+		Exec:        exec.EmptyExec(""),
 		Name:        "workflow",
 		Description: "perform work",
 		Steps: []config.Step{

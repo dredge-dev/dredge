@@ -101,6 +101,13 @@ func (s Step) Validate() error {
 			return err
 		}
 	}
+	if s.EditDredgeFile != nil {
+		numFields += 1
+		err := s.EditDredgeFile.Validate()
+		if err != nil {
+			return err
+		}
+	}
 
 	if numFields == 0 {
 		return fmt.Errorf("step %s does not contain an action", s.Name)
@@ -129,5 +136,9 @@ func (b BrowserStep) Validate() error {
 	if b.Url == "" {
 		return fmt.Errorf("url field is required for browser")
 	}
+	return nil
+}
+
+func (e EditDredgeFileStep) Validate() error {
 	return nil
 }
