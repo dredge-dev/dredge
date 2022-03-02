@@ -15,8 +15,8 @@ func NewEnv() Env {
 	return Env{}
 }
 
-func (e Env) AddVariables(ce config.Env) {
-	for key, value := range ce.Variables {
+func (e Env) AddVariables(v config.Variables) {
+	for key, value := range v {
 		if _, ok := e[key]; !ok {
 			e[key] = value
 		}

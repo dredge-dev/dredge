@@ -48,7 +48,7 @@ func NewExec(source string) (*DredgeExec, error) {
 	}
 
 	env := NewEnv()
-	env.AddVariables(dredgeFile.Env)
+	env.AddVariables(dredgeFile.Variables)
 
 	return &DredgeExec{
 		Source:     source,
@@ -66,7 +66,7 @@ func (exec *DredgeExec) Import(source string) (*DredgeExec, error) {
 	}
 
 	env := exec.Env.Clone()
-	env.AddVariables(imported.Env)
+	env.AddVariables(imported.Variables)
 
 	return &DredgeExec{
 		Parent:     exec,

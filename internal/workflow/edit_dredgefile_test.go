@@ -269,6 +269,47 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 			},
 			errMsg: "workflow w2: contains both steps and an import",
 		},
+		"add variable": {
+			df: config.DredgeFile{
+				Workflows: []config.Workflow{
+					{
+						Name: "add-workflow",
+						Steps: []config.Step{
+							{
+								EditDredgeFile: &config.EditDredgeFileStep{
+									AddVariables: config.Variables{
+										"hello": "world",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			content: config.DredgeFile{
+				Variables: config.Variables{
+					"hello": "world",
+				},
+				Workflows: []config.Workflow{
+					{
+						Name: "w1",
+						Steps: []config.Step{
+							{
+								Browser: &config.BrowserStep{
+									Url: "https://www.dredge.dev",
+								},
+							},
+						},
+					},
+				},
+				Buckets: []config.Bucket{
+					{
+						Name:      "b1",
+						Workflows: []config.Workflow{},
+					},
+				},
+			},
+		},
 	}
 
 	for testName, test := range tests {

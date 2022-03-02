@@ -55,11 +55,9 @@ func TestAddVariables(t *testing.T) {
 	env := NewEnv()
 	env["first"] = "set"
 
-	env.AddVariables(config.Env{
-		Variables: map[string]string{
-			"first":  "overwritten",
-			"second": "from vars",
-		},
+	env.AddVariables(config.Variables{
+		"first":  "overwritten",
+		"second": "from vars",
 	})
 
 	assert.Equal(t, "set", env["first"])

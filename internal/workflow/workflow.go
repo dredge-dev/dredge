@@ -40,7 +40,7 @@ func executeStep(workflow *exec.Workflow, step config.Step) error {
 }
 
 func executeShellStep(workflow *exec.Workflow, shell *config.ShellStep) error {
-	runtime, err := GetRuntime(workflow.Exec.DredgeFile.Env.Runtimes, shell.Runtime, workflow.Exec.Env)
+	runtime, err := GetRuntime(workflow.Exec.DredgeFile.Runtimes, shell.Runtime, workflow.Exec.Env)
 	if err != nil {
 		return err
 	}
@@ -48,5 +48,9 @@ func executeShellStep(workflow *exec.Workflow, shell *config.ShellStep) error {
 }
 
 func openBrowser(workflow *exec.Workflow, b *config.BrowserStep) error {
-	return browser.OpenURL(b.Url)
+	url, err := Template(b.Url, workflow.Exec.Env)
+	if err != nil {
+		return err
+	}
+	return browser.OpenURL(url)
 }

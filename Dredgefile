@@ -1,17 +1,16 @@
-env:
-  variables:
-    GO_VERSION: "1.17"
-  runtimes:
-    - name: build-container
-      type: container
-      image: golang:{{ .GO_VERSION }}
-      cache:
-        - /go
-    - name: gh-cli
-      type: container
-      image: ghcr.io/supportpal/github-gh-cli
-      cache:
-        - /root/.config/gh
+variables:
+  GO_VERSION: "1.17"
+runtimes:
+  - name: build-container
+    type: container
+    image: golang:{{ .GO_VERSION }}
+    cache:
+      - /go
+  - name: gh-cli
+    type: container
+    image: ghcr.io/supportpal/github-gh-cli
+    cache:
+      - /root/.config/gh
 workflows:
   - name: build
     description: Build the executable

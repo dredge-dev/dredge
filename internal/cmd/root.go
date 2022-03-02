@@ -32,6 +32,14 @@ func Init(de *exec.DredgeExec) error {
 			return runExecCommand(de, args)
 		},
 	})
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "init <source>",
+		Short: "Run a remote init workflow",
+		Long:  "Execute the init workflow from a remote Dredgefile",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runInitCommand(de, args)
+		},
+	})
 	return addWorkflows(de, rootCmd)
 }
 

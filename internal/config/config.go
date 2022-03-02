@@ -10,15 +10,13 @@ import (
 const DEFAULT_HOME = "/home"
 
 type DredgeFile struct {
-	Env       Env        `yaml:",omitempty"`
+	Variables Variables  `yaml:",omitempty"`
+	Runtimes  []Runtime  `yaml:",omitempty"`
 	Workflows []Workflow `yaml:",omitempty"`
 	Buckets   []Bucket   `yaml:",omitempty"`
 }
 
-type Env struct {
-	Variables map[string]string `yaml:",omitempty"`
-	Runtimes  []Runtime         `yaml:",omitempty"`
-}
+type Variables map[string]string
 
 type Runtime struct {
 	Name  string
@@ -78,8 +76,9 @@ type BrowserStep struct {
 }
 
 type EditDredgeFileStep struct {
-	AddWorkflows []Workflow `yaml:",omitempty"`
-	AddBuckets   []Bucket   `yaml:",omitempty"`
+	AddVariables Variables  `yaml:"add_variables,omitempty"`
+	AddWorkflows []Workflow `yaml:"add_workflows,omitempty"`
+	AddBuckets   []Bucket   `yaml:"add_buckets,omitempty"`
 }
 
 func ReadDredgeFile(filename string) (*DredgeFile, error) {
@@ -102,7 +101,7 @@ func ReadDredgeFile(filename string) (*DredgeFile, error) {
 }
 
 func WriteDredgeFile(dredgeFile *DredgeFile, filename string) error {
-	file, err := os.OpenFile(filename, os.O_WRONLY, 0644)
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}

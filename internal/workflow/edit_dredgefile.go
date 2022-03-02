@@ -12,6 +12,24 @@ func executeEditDredgeFile(workflow *exec.Workflow, edit *config.EditDredgeFileS
 	df := rootExec.DredgeFile
 	changed := false
 
+	if len(edit.AddVariables) > 0 {
+		if df.Variables == nil {
+			df.Variables = make(config.Variables)
+		}
+		for variable, value := range edit.AddVariables {
+			if _, ok := df.Variables[variable]; !ok {
+				templatedValue, err := Template(value, workflow.Exec.Env)
+				if err != nil {
+					return err
+				}
+				df.Variables[variable] = templatedValue
+				changed = true
+			} else {
+				fmt.Printf("Skipping adding variable %s to %s, already present.\n", variable, rootExec.Source)
+			}
+		}
+	}
+
 	for _, w := range edit.AddWorkflows {
 		if w.Import != nil {
 			w.Import.Source = exec.MergeSources(workflow.Exec.Source, w.Import.Source)
