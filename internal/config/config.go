@@ -1,8 +1,9 @@
 package config
 
 import (
-	"io/ioutil"
+	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -17,6 +18,7 @@ type DredgeFile struct {
 }
 
 type Variables map[string]string
+type SourcePath string
 
 type Runtime struct {
 	Name  string
@@ -35,7 +37,7 @@ type Bucket struct {
 }
 
 type ImportBucket struct {
-	Source string
+	Source SourcePath
 	Bucket string
 }
 
@@ -48,7 +50,7 @@ type Workflow struct {
 }
 
 type ImportWorkflow struct {
-	Source   string
+	Source   SourcePath
 	Bucket   string
 	Workflow string
 }
@@ -67,8 +69,9 @@ type ShellStep struct {
 }
 
 type TemplateStep struct {
-	Input string
-	Dest  string
+	Source SourcePath `yaml:",omitempty"`
+	Input  string     `yaml:",omitempty"`
+	Dest   string
 }
 
 type BrowserStep struct {
@@ -81,18 +84,12 @@ type EditDredgeFileStep struct {
 	AddBuckets   []Bucket   `yaml:"add_buckets,omitempty"`
 }
 
-func ReadDredgeFile(filename string) (*DredgeFile, error) {
-	buf, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
+func NewDredgeFile(buf []byte) (*DredgeFile, error) {
 	dredgeFile := &DredgeFile{}
-	err = yaml.Unmarshal(buf, dredgeFile)
+	err := yaml.Unmarshal(buf, dredgeFile)
 	if err != nil {
 		return nil, err
 	}
-
 	err = dredgeFile.Validate()
 	if err != nil {
 		return nil, err
@@ -100,8 +97,13 @@ func ReadDredgeFile(filename string) (*DredgeFile, error) {
 	return dredgeFile, nil
 }
 
-func WriteDredgeFile(dredgeFile *DredgeFile, filename string) error {
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+func WriteDredgeFile(dredgeFile *DredgeFile, filename SourcePath) error {
+	f := string(filename)
+	if !strings.HasPrefix(f, "./") {
+		return fmt.Errorf("Cannot write to non-local file %s", f)
+	}
+
+	file, err := os.OpenFile(f, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}

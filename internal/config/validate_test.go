@@ -195,9 +195,16 @@ func TestStepValidate(t *testing.T) {
 			step:     Step{Shell: &ShellStep{}},
 			errorMsg: "cmd field is required for shell",
 		},
-		"invalid template": {
+		"template without dest": {
 			step:     Step{Template: &TemplateStep{}},
-			errorMsg: "input and dest fields are required for template",
+			errorMsg: "dest field is required for template",
+		},
+		"template with both input and source": {
+			step: Step{Template: &TemplateStep{
+				Source: "file",
+				Input:  "hello",
+			}},
+			errorMsg: "either input or source should be set for template",
 		},
 		"invalid browser": {
 			step:     Step{Browser: &BrowserStep{}},

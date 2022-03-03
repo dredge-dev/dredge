@@ -46,6 +46,42 @@ func TestExecuteTemplate(t *testing.T) {
 	assert.Equal(t, "Hello value", string(content))
 }
 
+func TestExecuteTemplateFromSource(t *testing.T) {
+	dstFile := filepath.Join(os.TempDir(), fmt.Sprintf("drg-%d", rand.Intn(100000)))
+	defer os.Remove(dstFile)
+
+	templateFile := "./test-execute-template"
+	err := ioutil.WriteFile(templateFile, []byte("Hello {{ .test }}"), 0644)
+	defer os.Remove(templateFile)
+	assert.Nil(t, err)
+
+	workflow := &exec.Workflow{
+		Exec:        exec.EmptyExec("./Dredgefile"),
+		Name:        "workflow",
+		Description: "My workflow",
+		Inputs: map[string]string{
+			"test": "world",
+		},
+		Steps: []config.Step{
+			{
+				Name: "",
+				Template: &config.TemplateStep{
+					Source: config.SourcePath(templateFile),
+					Dest:   dstFile,
+				},
+			},
+		},
+	}
+
+	os.Setenv("test", "value")
+	err = ExecuteWorkflow(workflow)
+	assert.Nil(t, err)
+
+	content, err := ioutil.ReadFile(dstFile)
+	assert.Nil(t, err)
+	assert.Equal(t, "Hello value", string(content))
+}
+
 func TestTemplate(t *testing.T) {
 	tests := map[string]struct {
 		input  string

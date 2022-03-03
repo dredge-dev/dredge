@@ -2,6 +2,7 @@ package exec
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/dredge-dev/dredge/internal/config"
@@ -9,7 +10,7 @@ import (
 
 type DredgeExec struct {
 	Parent     *DredgeExec
-	Source     string
+	Source     config.SourcePath
 	DredgeFile *config.DredgeFile
 	Env        Env
 }
@@ -29,7 +30,7 @@ type Workflow struct {
 	Steps       []config.Step
 }
 
-func EmptyExec(source string) *DredgeExec {
+func EmptyExec(source config.SourcePath) *DredgeExec {
 	return &DredgeExec{
 		Source:     source,
 		DredgeFile: &config.DredgeFile{},
@@ -37,12 +38,13 @@ func EmptyExec(source string) *DredgeExec {
 	}
 }
 
-func NewExec(source string) (*DredgeExec, error) {
-	if !strings.HasPrefix(source, "./") {
-		return nil, fmt.Errorf("Sources should start with ./")
+func NewExec(source config.SourcePath) (*DredgeExec, error) {
+	content, err := ReadSource(source)
+	if err != nil {
+		return nil, err
 	}
 
-	dredgeFile, err := config.ReadDredgeFile(source)
+	dredgeFile, err := config.NewDredgeFile(content)
 	if err != nil {
 		return nil, fmt.Errorf("Error while parsing %s: %s", source, err)
 	}
@@ -57,10 +59,15 @@ func NewExec(source string) (*DredgeExec, error) {
 	}, nil
 }
 
-func (exec *DredgeExec) Import(source string) (*DredgeExec, error) {
+func (exec *DredgeExec) Import(source config.SourcePath) (*DredgeExec, error) {
 	fullSource := MergeSources(exec.Source, source)
 
-	imported, err := config.ReadDredgeFile(fullSource)
+	content, err := ReadSource(fullSource)
+	if err != nil {
+		return nil, err
+	}
+
+	imported, err := config.NewDredgeFile(content)
 	if err != nil {
 		return nil, err
 	}
@@ -76,18 +83,32 @@ func (exec *DredgeExec) Import(source string) (*DredgeExec, error) {
 	}, nil
 }
 
-func MergeSources(parent, child string) string {
-	if child == "" {
+func MergeSources(parent config.SourcePath, child config.SourcePath) config.SourcePath {
+	c := string(child)
+	p := string(parent)
+	if c == "" {
 		return parent
-	} else if strings.HasPrefix(child, "./") {
-		if strings.HasPrefix(parent, "./") {
-			parentPath := strings.Split(parent, "/")
+	} else if strings.HasPrefix(c, "./") {
+		if strings.HasPrefix(p, "./") {
+			parentPath := strings.Split(p, "/")
 			parentDir := parentPath[:len(parentPath)-1]
-			parts := append(parentDir, child[2:])
-			return strings.Join(parts, "/")
+			parts := append(parentDir, c[2:])
+			return config.SourcePath(strings.Join(parts, "/"))
 		}
 	}
 	return child
+}
+
+func ReadSource(source config.SourcePath) ([]byte, error) {
+	s := string(source)
+	if !strings.HasPrefix(s, "./") {
+		return nil, fmt.Errorf("Sources should start with ./")
+	}
+	return ioutil.ReadFile(s)
+}
+
+func (exec *DredgeExec) ReadSource(source config.SourcePath) ([]byte, error) {
+	return ReadSource(MergeSources(exec.Source, source))
 }
 
 func (exec *DredgeExec) GetWorkflows() ([]*Workflow, error) {

@@ -126,8 +126,11 @@ func (s ShellStep) Validate() error {
 }
 
 func (t TemplateStep) Validate() error {
-	if t.Input == "" || t.Dest == "" {
-		return fmt.Errorf("input and dest fields are required for template")
+	if t.Input != "" && t.Source != "" {
+		return fmt.Errorf("either input or source should be set for template")
+	}
+	if t.Dest == "" {
+		return fmt.Errorf("dest field is required for template")
 	}
 	return nil
 }

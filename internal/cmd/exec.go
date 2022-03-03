@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/dredge-dev/dredge/internal/config"
 	"github.com/dredge-dev/dredge/internal/exec"
 	"github.com/dredge-dev/dredge/internal/workflow"
 	"github.com/spf13/cobra"
@@ -13,7 +14,7 @@ func runExecCommand(e *exec.DredgeExec, args []string) error {
 		return fmt.Errorf("Not enough arguments: missing source")
 	}
 
-	de, err := e.Import(args[0])
+	de, err := e.Import(config.SourcePath(args[0]))
 	if err != nil {
 		return err
 	}

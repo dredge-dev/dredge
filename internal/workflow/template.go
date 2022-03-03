@@ -3,7 +3,7 @@ package workflow
 import (
 	"bytes"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"strings"
 	"text/template"
 	"time"
@@ -26,9 +26,18 @@ var TEMPLATE_FUNCTIONS = template.FuncMap{
 func executeTemplate(workflow *exec.Workflow, step *config.TemplateStep) error {
 	env := workflow.Exec.Env
 
-	t, err := template.New(TEMPLATE_NAME).Funcs(TEMPLATE_FUNCTIONS).Parse(step.Input)
+	input := step.Input
+	if step.Source != "" {
+		buf, err := workflow.Exec.ReadSource(step.Source)
+		if err != nil {
+			return err
+		}
+		input = string(buf)
+	}
+
+	out, err := Template(input, env)
 	if err != nil {
-		return fmt.Errorf("Failed to parse template: %s", err)
+		return err
 	}
 
 	dest, err := Template(step.Dest, env)
@@ -36,16 +45,7 @@ func executeTemplate(workflow *exec.Workflow, step *config.TemplateStep) error {
 		return fmt.Errorf("Failed to template Dest: %s", err)
 	}
 
-	f, err := os.Create(dest)
-	if err != nil {
-		return fmt.Errorf("Failed to create file: %s", err)
-	}
-
-	if err := t.Execute(f, env); err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(dest, []byte(out), 0644)
 }
 
 func Template(input string, env exec.Env) (string, error) {

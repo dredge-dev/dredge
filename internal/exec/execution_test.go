@@ -35,19 +35,19 @@ func TestNewExec(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		source     string
+		source     config.SourcePath
 		dredgeFile *config.DredgeFile
 		errMsg     string
 	}{
 		"local file": {
-			source:     tmpFile,
+			source:     config.SourcePath(tmpFile),
 			dredgeFile: &df,
 			errMsg:     "",
 		},
 		"file not found": {
 			source:     "./non-existing-file",
 			dredgeFile: nil,
-			errMsg:     "Error while parsing ./non-existing-file: open ./non-existing-file: no such file or directory",
+			errMsg:     "open ./non-existing-file: no such file or directory",
 		},
 		"unsupported": {
 			source:     "/hello",
@@ -207,9 +207,9 @@ func TestGetBucket(t *testing.T) {
 
 func TestMergeSources(t *testing.T) {
 	tests := map[string]struct {
-		parent string
-		child  string
-		result string
+		parent config.SourcePath
+		child  config.SourcePath
+		result config.SourcePath
 	}{
 		"parent without dir, child without dir": {
 			parent: "./test.Dredgefile",
@@ -324,7 +324,7 @@ func TestImport(t *testing.T) {
 			{
 				Name: "workflow",
 				Import: &config.ImportWorkflow{
-					Source:   remoteDredgeFilePath,
+					Source:   config.SourcePath(remoteDredgeFilePath),
 					Bucket:   "b1",
 					Workflow: "w1",
 				},
@@ -334,7 +334,7 @@ func TestImport(t *testing.T) {
 			{
 				Name: "bucket",
 				Import: &config.ImportBucket{
-					Source: remoteDredgeFilePath,
+					Source: config.SourcePath(remoteDredgeFilePath),
 					Bucket: "b1",
 				},
 			},

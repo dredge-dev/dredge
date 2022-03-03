@@ -83,7 +83,7 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 					{
 						Name: "w2",
 						Import: &config.ImportWorkflow{
-							Source:   importFile,
+							Source:   config.SourcePath(importFile),
 							Workflow: "add-workflow",
 						},
 					},
@@ -144,7 +144,7 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 					{
 						Name: "b2",
 						Import: &config.ImportBucket{
-							Source: importFile,
+							Source: config.SourcePath(importFile),
 							Bucket: "test-bucket",
 						},
 					},
@@ -323,10 +323,10 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 		err = ioutil.WriteFile(importFile, importContent, 0644)
 		assert.Nil(t, err)
 
-		e, err := exec.NewExec(dredgeFile)
+		e, err := exec.NewExec(config.SourcePath(dredgeFile))
 		assert.Nil(t, err)
 
-		de, err := e.Import(importFile)
+		de, err := e.Import(config.SourcePath(importFile))
 		assert.Nil(t, err)
 
 		w, err := de.GetWorkflow("", "add-workflow")
@@ -336,7 +336,10 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 		if test.errMsg == "" {
 			assert.Nil(t, err)
 
-			df, err := config.ReadDredgeFile(dredgeFile)
+			buf, err := exec.ReadSource(config.SourcePath(dredgeFile))
+			assert.Nil(t, err)
+
+			df, err := config.NewDredgeFile(buf)
 			assert.Nil(t, err)
 
 			content, err := yaml.Marshal(df)
