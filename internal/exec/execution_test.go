@@ -49,11 +49,6 @@ func TestNewExec(t *testing.T) {
 			dredgeFile: nil,
 			errMsg:     "stat ./non-existing-file: no such file or directory",
 		},
-		"unsupported": {
-			source:     "/hello",
-			dredgeFile: nil,
-			errMsg:     "sources should start with ./",
-		},
 	}
 
 	for testName, test := range tests {

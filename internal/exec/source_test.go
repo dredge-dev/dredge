@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -59,9 +60,9 @@ func TestResolvePath(t *testing.T) {
 			source: "./test",
 			path:   "./test",
 		},
-		"not starting with ./": {
-			source: "test",
-			errMsg: "sources should start with ./",
+		"subfolder with ./": {
+			source: "./child/test",
+			path:   "./child/test",
 		},
 	}
 	for testName, test := range tests {
@@ -74,6 +75,41 @@ func TestResolvePath(t *testing.T) {
 			assert.Equal(t, test.errMsg, fmt.Sprint(err))
 		}
 	}
+}
+
+func TestResolvePathRemote(t *testing.T) {
+	defer os.RemoveAll(".dredge")
+
+	tests := map[string]struct {
+		source config.SourcePath
+		path   string
+	}{
+		"default repo": {
+			source: "python",
+			path:   ".dredge/repo/ae9e3e81e1a486dcf8672286abe628d73529c940e61fb5beb78205bd64c5aa75/python",
+		},
+		"default repo with Dredgefile": {
+			source: "python/Dredgefile",
+			path:   ".dredge/repo/ae9e3e81e1a486dcf8672286abe628d73529c940e61fb5beb78205bd64c5aa75/python/Dredgefile",
+		},
+		"this repo": {
+			source: "https://github.com/dredge-dev/dredge.git:./Dredgefile",
+			path:   ".dredge/repo/dcaa2e689e488de01fa5aec96a93725d84f91395f25375f43237ff63a6f3c73c/Dredgefile",
+		},
+	}
+	for testName, test := range tests {
+		t.Logf("Running test case %s", testName)
+		result, err := resolvePath(test.source)
+		assert.Nil(t, err)
+		assert.Equal(t, test.path, result)
+		_, err = os.Stat(result)
+		assert.False(t, errors.Is(err, os.ErrNotExist))
+	}
+}
+
+func TestResolveRepoPath(t *testing.T) {
+	path := resolveRepoPath("https://github.com/dredge-dev/dredge-repo.git")
+	assert.Equal(t, ".dredge/repo/ae9e3e81e1a486dcf8672286abe628d73529c940e61fb5beb78205bd64c5aa75", path)
 }
 
 func TestResolveDredgeFilePath(t *testing.T) {
