@@ -33,12 +33,6 @@ chmod +x drg
 mv drg /usr/local/bin/
 ```
 
-### Windows
-
-```
-Invoke-WebRequest -Uri https://github.com/dredge-dev/dredge/releases/latest/download/drg-windows-amd64 -OutFile drg
-```
-
 ### ARM
 
 ARM binaries are available in [the GitHub releases](https://github.com/dredge-dev/dredge/releases).
