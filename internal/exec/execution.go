@@ -2,8 +2,6 @@ package exec
 
 import (
 	"fmt"
-	"io/ioutil"
-	"strings"
 
 	"github.com/dredge-dev/dredge/internal/config"
 )
@@ -39,21 +37,16 @@ func EmptyExec(source config.SourcePath) *DredgeExec {
 }
 
 func NewExec(source config.SourcePath) (*DredgeExec, error) {
-	content, err := ReadSource(source)
+	actualSource, dredgeFile, err := ReadDredgeFile(source)
 	if err != nil {
 		return nil, err
-	}
-
-	dredgeFile, err := config.NewDredgeFile(content)
-	if err != nil {
-		return nil, fmt.Errorf("Error while parsing %s: %s", source, err)
 	}
 
 	env := NewEnv()
 	env.AddVariables(dredgeFile.Variables)
 
 	return &DredgeExec{
-		Source:     source,
+		Source:     actualSource,
 		DredgeFile: dredgeFile,
 		Env:        env,
 	}, nil
@@ -62,12 +55,7 @@ func NewExec(source config.SourcePath) (*DredgeExec, error) {
 func (exec *DredgeExec) Import(source config.SourcePath) (*DredgeExec, error) {
 	fullSource := MergeSources(exec.Source, source)
 
-	content, err := ReadSource(fullSource)
-	if err != nil {
-		return nil, err
-	}
-
-	imported, err := config.NewDredgeFile(content)
+	actualSource, imported, err := ReadDredgeFile(fullSource)
 	if err != nil {
 		return nil, err
 	}
@@ -77,38 +65,14 @@ func (exec *DredgeExec) Import(source config.SourcePath) (*DredgeExec, error) {
 
 	return &DredgeExec{
 		Parent:     exec,
-		Source:     fullSource,
+		Source:     actualSource,
 		DredgeFile: imported,
 		Env:        env,
 	}, nil
 }
 
-func MergeSources(parent config.SourcePath, child config.SourcePath) config.SourcePath {
-	c := string(child)
-	p := string(parent)
-	if c == "" {
-		return parent
-	} else if strings.HasPrefix(c, "./") {
-		if strings.HasPrefix(p, "./") {
-			parentPath := strings.Split(p, "/")
-			parentDir := parentPath[:len(parentPath)-1]
-			parts := append(parentDir, c[2:])
-			return config.SourcePath(strings.Join(parts, "/"))
-		}
-	}
-	return child
-}
-
-func ReadSource(source config.SourcePath) ([]byte, error) {
-	s := string(source)
-	if !strings.HasPrefix(s, "./") {
-		return nil, fmt.Errorf("Sources should start with ./")
-	}
-	return ioutil.ReadFile(s)
-}
-
 func (exec *DredgeExec) ReadSource(source config.SourcePath) ([]byte, error) {
-	return ReadSource(MergeSources(exec.Source, source))
+	return readSource(MergeSources(exec.Source, source))
 }
 
 func (exec *DredgeExec) GetWorkflows() ([]*Workflow, error) {

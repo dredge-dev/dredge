@@ -336,10 +336,7 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 		if test.errMsg == "" {
 			assert.Nil(t, err)
 
-			buf, err := exec.ReadSource(config.SourcePath(dredgeFile))
-			assert.Nil(t, err)
-
-			df, err := config.NewDredgeFile(buf)
+			_, df, err := exec.ReadDredgeFile(config.SourcePath(dredgeFile))
 			assert.Nil(t, err)
 
 			content, err := yaml.Marshal(df)

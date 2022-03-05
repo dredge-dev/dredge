@@ -47,12 +47,12 @@ func TestNewExec(t *testing.T) {
 		"file not found": {
 			source:     "./non-existing-file",
 			dredgeFile: nil,
-			errMsg:     "open ./non-existing-file: no such file or directory",
+			errMsg:     "stat ./non-existing-file: no such file or directory",
 		},
 		"unsupported": {
 			source:     "/hello",
 			dredgeFile: nil,
-			errMsg:     "Sources should start with ./",
+			errMsg:     "sources should start with ./",
 		},
 	}
 
@@ -202,45 +202,6 @@ func TestGetBucket(t *testing.T) {
 		} else {
 			assert.Equal(t, test.errMsg, fmt.Sprint(err))
 		}
-	}
-}
-
-func TestMergeSources(t *testing.T) {
-	tests := map[string]struct {
-		parent config.SourcePath
-		child  config.SourcePath
-		result config.SourcePath
-	}{
-		"parent without dir, child without dir": {
-			parent: "./test.Dredgefile",
-			child:  "./second.Dredgefile",
-			result: "./second.Dredgefile",
-		},
-		"parent with dir, child without dir": {
-			parent: "./parent/test.Dredgefile",
-			child:  "./second.Dredgefile",
-			result: "./parent/second.Dredgefile",
-		},
-		"parent without dir, child with dir": {
-			parent: "./test.Dredgefile",
-			child:  "./child/second.Dredgefile",
-			result: "./child/second.Dredgefile",
-		},
-		"parent with dir, child with dir": {
-			parent: "./parent/test.Dredgefile",
-			child:  "./child/second.Dredgefile",
-			result: "./parent/child/second.Dredgefile",
-		},
-		"empty parent, child": {
-			parent: "",
-			child:  "./child/Dredgefile",
-			result: "./child/Dredgefile",
-		},
-	}
-
-	for testName, test := range tests {
-		t.Logf("Running test case %s", testName)
-		assert.Equal(t, test.result, MergeSources(test.parent, test.child))
 	}
 }
 

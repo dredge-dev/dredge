@@ -10,10 +10,10 @@ import (
 	"github.com/dredge-dev/dredge/internal/exec"
 )
 
-const defaultDredgefilePath = "./Dredgefile"
+const DefaultDredgefilePath = "./" + exec.DefaultDredgefileName
 
 func main() {
-	source := defaultDredgefilePath
+	source := DefaultDredgefilePath
 	var de *exec.DredgeExec
 
 	if _, err := os.Stat(source); errors.Is(err, os.ErrNotExist) {
