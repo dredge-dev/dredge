@@ -12,25 +12,28 @@ import (
 
 func TestAddInput(t *testing.T) {
 	tests := map[string]struct {
-		name        string
-		description string
-		input       io.Reader
-		osEnv       map[string]string
-		outputEnv   map[string]string
+		input     config.Input
+		reader    io.Reader
+		osEnv     map[string]string
+		outputEnv map[string]string
 	}{
-		"inEnv": {
-			name:        "title",
-			description: "Title of the thing",
-			input:       bytes.NewReader([]byte("")),
-			osEnv:       map[string]string{"title": "the title"},
-			outputEnv:   map[string]string{"title": "the title"},
+		"textInEnv": {
+			input:     config.Input{Name: "title"},
+			reader:    bytes.NewReader([]byte("")),
+			osEnv:     map[string]string{"title": "the title"},
+			outputEnv: map[string]string{"title": "the title"},
 		},
-		"fromInput": {
-			name:        "title",
-			description: "Title of the thing",
-			input:       bytes.NewReader([]byte("the title")),
-			osEnv:       map[string]string{},
-			outputEnv:   map[string]string{"title": "the title"},
+		"textFromInput": {
+			input:     config.Input{Name: "title"},
+			reader:    bytes.NewReader([]byte("the title")),
+			osEnv:     map[string]string{},
+			outputEnv: map[string]string{"title": "the title"},
+		},
+		"selectInEnv": {
+			input:     config.Input{Name: "city", Type: "select", Values: []string{"Brussels", "Barcelona"}},
+			reader:    nil,
+			osEnv:     map[string]string{"city": "Brussels"},
+			outputEnv: map[string]string{"city": "Brussels"},
 		},
 	}
 
@@ -40,7 +43,7 @@ func TestAddInput(t *testing.T) {
 		for k, v := range test.osEnv {
 			os.Setenv(k, v)
 		}
-		err := env.AddInput(test.name, test.description, test.input)
+		err := env.AddInput(test.input, test.reader)
 		assert.Nil(t, err)
 		for k, v := range test.outputEnv {
 			assert.Equal(t, v, env[k])

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/dredge-dev/dredge/internal/config"
+	"github.com/manifoldco/promptui"
 )
 
 type Env map[string]string
@@ -23,21 +24,41 @@ func (e Env) AddVariables(v config.Variables) {
 	}
 }
 
-func (e Env) AddInput(name string, description string, input io.Reader) error {
+func (e Env) AddInput(input config.Input, reader io.Reader) error {
 	var value string
-	value = os.Getenv(name)
-	if value == "" {
-		fmt.Printf("%s [%s]: ", description, name)
-		scanner := bufio.NewScanner(input)
-		if scanner.Scan() {
-			value = scanner.Text()
+	value = os.Getenv(input.Name)
+	if input.Type == "" || input.Type == "text" {
+		if value == "" {
+			fmt.Printf("%s [%s]: ", input.Description, input.Name)
+			scanner := bufio.NewScanner(reader)
+			if scanner.Scan() {
+				value = scanner.Text()
+			}
+			if err := scanner.Err(); err != nil {
+				return err
+			}
 		}
-		if err := scanner.Err(); err != nil {
-			return err
+		e[input.Name] = value
+		return nil
+	} else if input.Type == "select" {
+		if value == "" {
+			var err error
+			prompt := promptui.Select{
+				Label: fmt.Sprintf("%s [%s]", input.Description, input.Name),
+				Items: input.Values,
+			}
+			_, value, err = prompt.Run()
+			if err != nil {
+				return err
+			}
 		}
+		if !input.HasValue(value) {
+			return fmt.Errorf("Invalid value (%s) for Input %s", value, input.Name)
+		}
+		e[input.Name] = value
+		return nil
 	}
-	e[name] = value
-	return nil
+	return fmt.Errorf("Type %s not implemented", input.Type)
 }
 
 func (e Env) Clone() Env {

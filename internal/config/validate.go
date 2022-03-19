@@ -59,6 +59,11 @@ func (w Workflow) Validate() error {
 		}
 		return nil
 	}
+	for _, i := range w.Inputs {
+		if err := i.Validate(); err != nil {
+			return fmt.Errorf("workflow %s: %v", w.Name, err)
+		}
+	}
 	if len(w.Steps) == 0 {
 		return fmt.Errorf("workflow %s: no steps or import defined", w.Name)
 	}
@@ -73,6 +78,25 @@ func (w Workflow) Validate() error {
 func (i ImportWorkflow) Validate() error {
 	if i.Workflow == "" {
 		return fmt.Errorf("workflow field is required for import")
+	}
+	return nil
+}
+
+func (i Input) Validate() error {
+	if i.Name == "" {
+		return fmt.Errorf("name field is required on inputs")
+	}
+	if i.Type != "" && i.Type != "text" && i.Type != "select" {
+		return fmt.Errorf("input %s: unknown input type: %s (valid options are: text, select)", i.Name, i.Type)
+	}
+	if len(i.Values) > 0 && (i.Type == "" || i.Type == "text") {
+		return fmt.Errorf("input %s: values for input can only be provided for the select type", i.Name)
+	}
+	if len(i.Values) == 0 && i.Type == "select" {
+		return fmt.Errorf("input %s: no values are provided, values are required for the select type", i.Name)
+	}
+	if i.DefaultValue != "" && i.Type == "select" {
+		return fmt.Errorf("input %s: default value can only be provided for the text type", i.Name)
 	}
 	return nil
 }

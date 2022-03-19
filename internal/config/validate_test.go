@@ -166,6 +166,110 @@ func TestValidate(t *testing.T) {
 	}
 }
 
+func TestInputValidate(t *testing.T) {
+	tests := map[string]struct {
+		input    Input
+		errorMsg string
+	}{
+		"missing name": {
+			input: Input{
+				Name: "",
+			},
+			errorMsg: "name field is required on inputs",
+		},
+		"invalid type": {
+			input: Input{
+				Name: "test",
+				Type: "invalid",
+			},
+			errorMsg: "input test: unknown input type: invalid (valid options are: text, select)",
+		},
+		"simple input": {
+			input: Input{
+				Name: "inputName",
+			},
+			errorMsg: "",
+		},
+		"default input": {
+			input: Input{
+				Name:         "test",
+				Description:  "some input",
+				DefaultValue: "world",
+			},
+			errorMsg: "",
+		},
+		"text input": {
+			input: Input{
+				Name:         "test",
+				Type:         "text",
+				Description:  "some input",
+				DefaultValue: "world",
+			},
+			errorMsg: "",
+		},
+		"default input with values": {
+			input: Input{
+				Name: "test",
+				Values: []string{
+					"hello", "world",
+				},
+			},
+			errorMsg: "input test: values for input can only be provided for the select type",
+		},
+		"text input with values": {
+			input: Input{
+				Name: "test",
+				Type: "text",
+				Values: []string{
+					"hello", "world",
+				},
+			},
+			errorMsg: "input test: values for input can only be provided for the select type",
+		},
+		"select input": {
+			input: Input{
+				Name:        "select-input",
+				Type:        "select",
+				Description: "select an input",
+				Values: []string{
+					"value1", "value2", "value3",
+				},
+			},
+			errorMsg: "",
+		},
+		"select input without values": {
+			input: Input{
+				Name:        "select-input",
+				Type:        "select",
+				Description: "select an input",
+				Values:      []string{},
+			},
+			errorMsg: "input select-input: no values are provided, values are required for the select type",
+		},
+		"select input with default value": {
+			input: Input{
+				Name:        "select-input",
+				Type:        "select",
+				Description: "select an input",
+				Values: []string{
+					"value1", "value2",
+				},
+				DefaultValue: "value1",
+			},
+			errorMsg: "input select-input: default value can only be provided for the text type",
+		},
+	}
+	for testName, test := range tests {
+		t.Logf("Running test case %s", testName)
+		err := test.input.Validate()
+		if test.errorMsg == "" {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, test.errorMsg, fmt.Sprint(err))
+		}
+	}
+}
+
 func TestStepValidate(t *testing.T) {
 	tests := map[string]struct {
 		step     Step

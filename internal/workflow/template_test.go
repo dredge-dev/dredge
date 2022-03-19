@@ -26,8 +26,10 @@ func TestExecuteTemplate(t *testing.T) {
 		Exec:        exec.EmptyExec(""),
 		Name:        "workflow",
 		Description: "My workflow",
-		Inputs: map[string]string{
-			"test": "world",
+		Inputs: []config.Input{
+			{
+				Name: "test",
+			},
 		},
 		Steps: []config.Step{
 			{
@@ -59,8 +61,10 @@ func TestExecuteTemplateFromSource(t *testing.T) {
 		Exec:        exec.EmptyExec("./Dredgefile"),
 		Name:        "workflow",
 		Description: "My workflow",
-		Inputs: map[string]string{
-			"test": "world",
+		Inputs: []config.Input{
+			{
+				Name: "test",
+			},
 		},
 		Steps: []config.Step{
 			{

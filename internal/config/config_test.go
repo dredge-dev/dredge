@@ -29,3 +29,15 @@ func TestGetHome(t *testing.T) {
 		assert.Equal(t, test.home, home)
 	}
 }
+
+func TestGetValue(t *testing.T) {
+	input := Input{
+		Name:        "city",
+		Description: "city",
+		Type:        "select",
+		Values:      []string{"Brussels", "Barcelona"},
+	}
+	assert.Equal(t, true, input.HasValue("Brussels"))
+	assert.Equal(t, true, input.HasValue("Barcelona"))
+	assert.Equal(t, false, input.HasValue("London"))
+}

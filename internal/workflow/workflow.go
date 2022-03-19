@@ -10,8 +10,8 @@ import (
 )
 
 func ExecuteWorkflow(workflow *exec.Workflow) error {
-	for input, description := range workflow.Inputs {
-		err := workflow.Exec.Env.AddInput(input, description, os.Stdin)
+	for _, input := range workflow.Inputs {
+		err := workflow.Exec.Env.AddInput(input, os.Stdin)
 		if err != nil {
 			return err
 		}

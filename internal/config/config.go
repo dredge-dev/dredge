@@ -43,16 +43,24 @@ type ImportBucket struct {
 
 type Workflow struct {
 	Name        string
-	Description string            `yaml:",omitempty"`
-	Inputs      map[string]string `yaml:",omitempty"`
-	Steps       []Step            `yaml:",omitempty"`
-	Import      *ImportWorkflow   `yaml:",omitempty"`
+	Description string          `yaml:",omitempty"`
+	Inputs      []Input         `yaml:",omitempty"`
+	Steps       []Step          `yaml:",omitempty"`
+	Import      *ImportWorkflow `yaml:",omitempty"`
 }
 
 type ImportWorkflow struct {
 	Source   SourcePath
 	Bucket   string
 	Workflow string
+}
+
+type Input struct {
+	Name         string
+	Description  string   `yaml:",omitempty"`
+	Type         string   `yaml:",omitempty"`
+	Values       []string `yaml:",omitempty"`
+	DefaultValue string   `yaml:default_value",omitempty"`
 }
 
 type Step struct {
@@ -121,4 +129,13 @@ func (r Runtime) GetHome() string {
 		return DEFAULT_HOME
 	}
 	return *r.Home
+}
+
+func (i Input) HasValue(value string) bool {
+	for _, v := range i.Values {
+		if value == v {
+			return true
+		}
+	}
+	return false
 }

@@ -24,7 +24,7 @@ type Workflow struct {
 	Exec        *DredgeExec
 	Name        string
 	Description string
-	Inputs      map[string]string
+	Inputs      []config.Input
 	Steps       []config.Step
 }
 
