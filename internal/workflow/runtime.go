@@ -68,7 +68,20 @@ func createContainerRuntime(r config.Runtime, e exec.Env) (*Runtime, error) {
 
 	var ports []string
 	for _, p := range r.Ports {
-		ports = append(ports, fmt.Sprintf("-p %s", p))
+		portsString, err := Template(p, e)
+		if err != nil {
+			return nil, err
+		}
+		portsParts := strings.Split(portsString, ",")
+		for _, port := range portsParts {
+			if len(port) > 0 {
+				if strings.Contains(port, ":") {
+					ports = append(ports, fmt.Sprintf("-p %s", port))
+				} else {
+					ports = append(ports, fmt.Sprintf("-p %s:%s", port, port))
+				}
+			}
+		}
 	}
 
 	return &Runtime{

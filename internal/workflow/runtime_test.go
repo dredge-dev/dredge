@@ -24,34 +24,57 @@ func TestGetRuntime(t *testing.T) {
 			Ports: []string{"8080:8080"},
 		},
 		{
+			Name:  "port-container",
+			Type:  "container",
+			Image: "port-image:latest",
+			Home:  &home,
+			Cache: []string{"/test"},
+			Ports: []string{"{{ .PORTS }}"},
+		},
+		{
 			Name: "native",
 			Type: "native",
 		},
 	}
 
 	env := exec.NewEnv()
+	env["PORTS"] = "1234,80"
 
 	tests := map[string]struct {
 		name    string
+		env     exec.Env
 		command string
 	}{
 		"container": {
 			name:    "build-container",
+			env:     exec.NewEnv(),
 			command: fmt.Sprintf("docker run --rm  -v %s/.dredge/cache/go:/go -v %s:/home -p 8080:8080 -w /home -it build-image:latest {{ .cmd }}", wd, wd),
+		},
+		"container with ports": {
+			name:    "port-container",
+			env:     env,
+			command: fmt.Sprintf("docker run --rm -e PORTS=1234,80 -v %s/.dredge/cache/test:/test -v %s:/home -p 1234:1234 -p 80:80 -w /home -it port-image:latest {{ .cmd }}", wd, wd),
+		},
+		"container without ports": {
+			name:    "port-container",
+			env:     exec.NewEnv(),
+			command: fmt.Sprintf("docker run --rm  -v %s/.dredge/cache/test:/test -v %s:/home  -w /home -it port-image:latest {{ .cmd }}", wd, wd),
 		},
 		"native": {
 			name:    "native",
+			env:     exec.NewEnv(),
 			command: "{{ .cmd }}",
 		},
 		"default": {
 			name:    "",
+			env:     exec.NewEnv(),
 			command: "{{ .cmd }}",
 		},
 	}
 
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
-		runtime, err := GetRuntime(runtimes, test.name, env)
+		runtime, err := GetRuntime(runtimes, test.name, test.env)
 		assert.Nil(t, err)
 		assert.Equal(t, test.command, runtime.Template)
 	}

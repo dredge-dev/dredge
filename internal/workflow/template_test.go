@@ -117,6 +117,30 @@ func TestTemplate(t *testing.T) {
 			output: time.Now().Format("2006-01-02"),
 			err:    nil,
 		},
+		"join with empty": {
+			input:  "{{ join .arr .new \",\" }}",
+			env:    exec.Env{"new": "5000", "arr": ""},
+			output: "5000",
+			err:    nil,
+		},
+		"join empty": {
+			input:  "{{ join .arr .new \",\" }}",
+			env:    exec.Env{"new": "", "arr": "5000"},
+			output: "5000",
+			err:    nil,
+		},
+		"join with one": {
+			input:  "{{ join .arr .new \",\" }}",
+			env:    exec.Env{"new": "5000", "arr": "8000"},
+			output: "8000,5000",
+			err:    nil,
+		},
+		"join to list": {
+			input:  "{{ join .arr .new \",\" }}",
+			env:    exec.Env{"new": "5000", "arr": "80,1234"},
+			output: "80,1234,5000",
+			err:    nil,
+		},
 	}
 
 	for testName, test := range tests {
@@ -124,5 +148,93 @@ func TestTemplate(t *testing.T) {
 		output, err := Template(test.input, test.env)
 		assert.Equal(t, test.output, output)
 		assert.Equal(t, test.err, err)
+	}
+}
+
+func TestInsert(t *testing.T) {
+	dstPath := filepath.Join(os.TempDir(), fmt.Sprintf("drg-%d", rand.Intn(100000)))
+
+	tests := map[string]struct {
+		preContent  string
+		insert      *config.Insert
+		text        string
+		dest        string
+		postContent string
+		errorMsg    string
+	}{
+		"no insert": {
+			preContent:  "something to overwrite",
+			text:        "hello",
+			dest:        dstPath,
+			postContent: "hello",
+			errorMsg:    "",
+		},
+		"new file": {
+			preContent:  "",
+			insert:      &config.Insert{Placement: "begin"},
+			text:        "hello",
+			dest:        dstPath,
+			postContent: "hello\n",
+			errorMsg:    "",
+		},
+		"prefix content": {
+			preContent:  "world",
+			insert:      &config.Insert{Placement: "begin"},
+			text:        "hello",
+			dest:        dstPath,
+			postContent: "hello\nworld",
+			errorMsg:    "",
+		},
+		"suffix content": {
+			preContent:  "hello",
+			insert:      &config.Insert{Placement: "end"},
+			text:        "world",
+			dest:        dstPath,
+			postContent: "hello\nworld",
+			errorMsg:    "",
+		},
+		"default to suffix": {
+			preContent:  "hello",
+			insert:      &config.Insert{},
+			text:        "world",
+			dest:        dstPath,
+			postContent: "hello\nworld",
+			errorMsg:    "",
+		},
+		"go import": {
+			preContent:  "package main\nimport \"fmt\"\nfunc main() {\n}\n",
+			insert:      &config.Insert{Section: "import"},
+			text:        "\"testing\"",
+			dest:        dstPath + ".go",
+			postContent: "package main\n\nimport (\n\t\"fmt\"\n\t\"testing\"\n)\n\nfunc main() {\n}",
+			errorMsg:    "",
+		},
+		"invalid extension": {
+			preContent: "hello",
+			insert:     &config.Insert{Section: "import"},
+			text:       " world",
+			dest:       dstPath + ".java",
+			errorMsg:   "unsupported extension java for insert (valid values: go)",
+		},
+	}
+
+	for testName, test := range tests {
+		t.Logf("Running test case %s", testName)
+		if test.preContent != "" {
+			err := ioutil.WriteFile(test.dest, []byte(test.preContent), 0644)
+			assert.Nil(t, err)
+		}
+		err := insert(test.insert, test.text, test.dest)
+		if test.errorMsg == "" {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, test.errorMsg, fmt.Sprint(err))
+		}
+		if test.postContent != "" {
+			bytes, err := ioutil.ReadFile(test.dest)
+			assert.Nil(t, err)
+			assert.Equal(t, test.postContent, string(bytes))
+		}
+		os.Remove(test.dest)
 	}
 }

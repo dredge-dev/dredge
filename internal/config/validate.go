@@ -86,17 +86,17 @@ func (i Input) Validate() error {
 	if i.Name == "" {
 		return fmt.Errorf("name field is required on inputs")
 	}
-	if i.Type != "" && i.Type != "text" && i.Type != "select" {
-		return fmt.Errorf("input %s: unknown input type: %s (valid options are: text, select)", i.Name, i.Type)
+	if i.Type != "" && i.Type != INPUT_TEXT && i.Type != INPUT_SELECT {
+		return fmt.Errorf("input %s: unknown input type: %s (valid options are: %s, %s)", i.Name, i.Type, INPUT_TEXT, INPUT_SELECT)
 	}
-	if len(i.Values) > 0 && (i.Type == "" || i.Type == "text") {
-		return fmt.Errorf("input %s: values for input can only be provided for the select type", i.Name)
+	if len(i.Values) > 0 && (i.Type == "" || i.Type == INPUT_TEXT) {
+		return fmt.Errorf("input %s: values for input can only be provided for the %s type", i.Name, INPUT_SELECT)
 	}
-	if len(i.Values) == 0 && i.Type == "select" {
-		return fmt.Errorf("input %s: no values are provided, values are required for the select type", i.Name)
+	if len(i.Values) == 0 && i.Type == INPUT_SELECT {
+		return fmt.Errorf("input %s: no values are provided, values are required for the %s type", i.Name, INPUT_SELECT)
 	}
-	if i.DefaultValue != "" && i.Type == "select" {
-		return fmt.Errorf("input %s: default value can only be provided for the text type", i.Name)
+	if i.DefaultValue != "" && i.Type == INPUT_SELECT {
+		return fmt.Errorf("input %s: default value can only be provided for the %s type", i.Name, INPUT_TEXT)
 	}
 	return nil
 }
@@ -155,6 +155,16 @@ func (t TemplateStep) Validate() error {
 	}
 	if t.Dest == "" {
 		return fmt.Errorf("dest field is required for template")
+	}
+	if t.Insert != nil {
+		return t.Insert.Validate()
+	}
+	return nil
+}
+
+func (i Insert) Validate() error {
+	if i.Placement != "" && i.Placement != INSERT_BEGIN && i.Placement != INSERT_END {
+		return fmt.Errorf("unknown placement in insert: %s (valid options are: %s, %s)", i.Placement, INSERT_BEGIN, INSERT_END)
 	}
 	return nil
 }

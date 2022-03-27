@@ -27,7 +27,7 @@ func (e Env) AddVariables(v config.Variables) {
 func (e Env) AddInput(input config.Input, reader io.Reader) error {
 	var value string
 	value = os.Getenv(input.Name)
-	if input.Type == "" || input.Type == "text" {
+	if input.Type == "" || input.Type == config.INPUT_TEXT {
 		if value == "" {
 			fmt.Printf("%s [%s]: ", input.Description, input.Name)
 			scanner := bufio.NewScanner(reader)
@@ -40,7 +40,7 @@ func (e Env) AddInput(input config.Input, reader io.Reader) error {
 		}
 		e[input.Name] = value
 		return nil
-	} else if input.Type == "select" {
+	} else if input.Type == config.INPUT_SELECT {
 		if value == "" {
 			var err error
 			prompt := promptui.Select{

@@ -299,6 +299,16 @@ func TestStepValidate(t *testing.T) {
 			step:     Step{Shell: &ShellStep{}},
 			errorMsg: "cmd field is required for shell",
 		},
+		"template": {
+			step: Step{Template: &TemplateStep{
+				Source: "file",
+				Dest:   "test",
+				Insert: &Insert{
+					Section: "import",
+				},
+			}},
+			errorMsg: "",
+		},
 		"template without dest": {
 			step:     Step{Template: &TemplateStep{}},
 			errorMsg: "dest field is required for template",
@@ -309,6 +319,23 @@ func TestStepValidate(t *testing.T) {
 				Input:  "hello",
 			}},
 			errorMsg: "either input or source should be set for template",
+		},
+		"template with invalid insert placement": {
+			step: Step{Template: &TemplateStep{
+				Source: "file",
+				Dest:   "test",
+				Insert: &Insert{
+					Section:   "import",
+					Placement: "middle",
+				},
+			}},
+			errorMsg: "unknown placement in insert: middle (valid options are: begin, end)",
+		},
+		"browser": {
+			step: Step{Browser: &BrowserStep{
+				Url: "https://dredge.dev/",
+			}},
+			errorMsg: "",
 		},
 		"invalid browser": {
 			step:     Step{Browser: &BrowserStep{}},

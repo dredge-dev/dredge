@@ -8,7 +8,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const DEFAULT_HOME = "/home"
+const (
+	DEFAULT_HOME = "/home"
+	INPUT_TEXT   = "text"
+	INPUT_SELECT = "select"
+	INSERT_BEGIN = "begin"
+	INSERT_END   = "end"
+)
 
 type DredgeFile struct {
 	Variables Variables  `yaml:",omitempty"`
@@ -60,7 +66,7 @@ type Input struct {
 	Description  string   `yaml:",omitempty"`
 	Type         string   `yaml:",omitempty"`
 	Values       []string `yaml:",omitempty"`
-	DefaultValue string   `yaml:default_value",omitempty"`
+	DefaultValue string   `yaml:"default_value,omitempty"`
 }
 
 type Step struct {
@@ -80,6 +86,12 @@ type TemplateStep struct {
 	Source SourcePath `yaml:",omitempty"`
 	Input  string     `yaml:",omitempty"`
 	Dest   string
+	Insert *Insert `yaml:",omitempty"`
+}
+
+type Insert struct {
+	Section   string `yaml:",omitempty"`
+	Placement string `yaml:",omitempty"`
 }
 
 type BrowserStep struct {
