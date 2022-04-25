@@ -9,11 +9,14 @@ import (
 )
 
 const (
-	DEFAULT_HOME = "/home"
-	INPUT_TEXT   = "text"
-	INPUT_SELECT = "select"
-	INSERT_BEGIN = "begin"
-	INSERT_END   = "end"
+	DEFAULT_HOME      = "/home"
+	INPUT_TEXT        = "text"
+	INPUT_SELECT      = "select"
+	INSERT_BEGIN      = "begin"
+	INSERT_END        = "end"
+	INSERT_UNIQUE     = "unique"
+	RUNTIME_NATIVE    = "native"
+	RUNTIME_CONTAINER = "container"
 )
 
 type DredgeFile struct {
@@ -27,12 +30,13 @@ type Variables map[string]string
 type SourcePath string
 
 type Runtime struct {
-	Name  string
-	Type  string
-	Image string   `yaml:",omitempty"`
-	Home  *string  `yaml:",omitempty"`
-	Cache []string `yaml:",omitempty"`
-	Ports []string `yaml:",omitempty"`
+	Name        string
+	Type        string
+	Image       string   `yaml:",omitempty"`
+	Home        string   `yaml:",omitempty"`
+	Cache       []string `yaml:",omitempty"`
+	GlobalCache []string `yaml:"global_cache,omitempty"`
+	Ports       []string `yaml:",omitempty"`
 }
 
 type Bucket struct {
@@ -75,11 +79,14 @@ type Step struct {
 	Template       *TemplateStep       `yaml:",omitempty"`
 	Browser        *BrowserStep        `yaml:",omitempty"`
 	EditDredgeFile *EditDredgeFileStep `yaml:"edit_dredgefile,omitempty"`
+	If             *IfStep             `yaml:",omitempty"`
 }
 
 type ShellStep struct {
 	Cmd     string
 	Runtime string `yaml:",omitempty"`
+	StdOut  string `yaml:"stdout,omitempty"`
+	StdErr  string `yaml:"stderr,omitempty"`
 }
 
 type TemplateStep struct {
@@ -102,6 +109,11 @@ type EditDredgeFileStep struct {
 	AddVariables Variables  `yaml:"add_variables,omitempty"`
 	AddWorkflows []Workflow `yaml:"add_workflows,omitempty"`
 	AddBuckets   []Bucket   `yaml:"add_buckets,omitempty"`
+}
+
+type IfStep struct {
+	Cond  string
+	Steps []Step `yaml:",omitempty"`
 }
 
 func NewDredgeFile(buf []byte) (*DredgeFile, error) {
@@ -137,10 +149,10 @@ func WriteDredgeFile(dredgeFile *DredgeFile, filename SourcePath) error {
 }
 
 func (r Runtime) GetHome() string {
-	if r.Home == nil {
+	if r.Home == "" {
 		return DEFAULT_HOME
 	}
-	return *r.Home
+	return r.Home
 }
 
 func (i Input) HasValue(value string) bool {

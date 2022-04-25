@@ -153,11 +153,79 @@ func TestValidate(t *testing.T) {
 			},
 			errorMsg: "workflow w1: contains both steps and an import",
 		},
+		"runtime validation": {
+			dredgeFile: &DredgeFile{
+				Runtimes: []Runtime{
+					{},
+				},
+			},
+			errorMsg: "name field is required for runtime",
+		},
 	}
 
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
 		err := test.dredgeFile.Validate()
+		if test.errorMsg == "" {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, test.errorMsg, fmt.Sprint(err))
+		}
+	}
+}
+
+func TestRuntimeValidate(t *testing.T) {
+	tests := map[string]struct {
+		runtime  Runtime
+		errorMsg string
+	}{
+		"invalid runtime type": {
+			runtime: Runtime{
+				Name: "c1",
+				Type: "cool",
+			},
+			errorMsg: "unknown runtime type: cool (valid options are native, container)",
+		},
+		"native runtime type": {
+			runtime: Runtime{
+				Name: "n",
+				Type: "native",
+			},
+			errorMsg: "",
+		},
+		"runtime without name": {
+			runtime: Runtime{
+				Type: "native",
+			},
+			errorMsg: "name field is required for runtime",
+		},
+		"container runtime type": {
+			runtime: Runtime{
+				Name:  "c",
+				Type:  "container",
+				Image: "my-image",
+			},
+			errorMsg: "",
+		},
+		"container missing image": {
+			runtime: Runtime{
+				Name: "c",
+				Type: "container",
+			},
+			errorMsg: "image field is required for container runtimes",
+		},
+		"native with container fields": {
+			runtime: Runtime{
+				Name:  "n",
+				Type:  "native",
+				Image: "out-of-place",
+			},
+			errorMsg: "image, home, cache, global_cache and ports fields are only applicable to container runtimes",
+		},
+	}
+	for testName, test := range tests {
+		t.Logf("Running test case %s", testName)
+		err := test.runtime.Validate()
 		if test.errorMsg == "" {
 			assert.Nil(t, err)
 		} else {
@@ -329,7 +397,7 @@ func TestStepValidate(t *testing.T) {
 					Placement: "middle",
 				},
 			}},
-			errorMsg: "unknown placement in insert: middle (valid options are: begin, end)",
+			errorMsg: "unknown placement in insert: middle (valid options are: begin, end, unique)",
 		},
 		"browser": {
 			step: Step{Browser: &BrowserStep{
@@ -340,6 +408,36 @@ func TestStepValidate(t *testing.T) {
 		"invalid browser": {
 			step:     Step{Browser: &BrowserStep{}},
 			errorMsg: "url field is required for browser",
+		},
+		"if": {
+			step: Step{
+				If: &IfStep{
+					Cond: "{{ .VALID }}",
+					Steps: []Step{
+						{Browser: &BrowserStep{Url: "https://www.google.com"}},
+					},
+				},
+			},
+			errorMsg: "",
+		},
+		"if without cond": {
+			step: Step{
+				If: &IfStep{
+					Steps: []Step{
+						{Browser: &BrowserStep{Url: "https://www.google.com"}},
+					},
+				},
+			},
+			errorMsg: "cond field is required for if",
+		},
+		"if without steps": {
+			step: Step{
+				If: &IfStep{
+					Cond:  "{{ .VALID }}",
+					Steps: []Step{},
+				},
+			},
+			errorMsg: "1 or more steps are required for if",
 		},
 	}
 

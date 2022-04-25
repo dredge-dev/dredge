@@ -5,6 +5,11 @@ import (
 )
 
 func (dredgeFile *DredgeFile) Validate() error {
+	for _, r := range dredgeFile.Runtimes {
+		if err := r.Validate(); err != nil {
+			return err
+		}
+	}
 	for _, w := range dredgeFile.Workflows {
 		if err := w.Validate(); err != nil {
 			return err
@@ -14,6 +19,26 @@ func (dredgeFile *DredgeFile) Validate() error {
 		if err := b.Validate(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (r Runtime) Validate() error {
+	if r.Name == "" {
+		return fmt.Errorf("name field is required for runtime")
+	}
+	if r.Type != RUNTIME_NATIVE && r.Type != RUNTIME_CONTAINER {
+		return fmt.Errorf("unknown runtime type: %s (valid options are %s, %s)", r.Type, RUNTIME_NATIVE, RUNTIME_CONTAINER)
+	}
+	if r.Type == RUNTIME_NATIVE && (r.Image != "" ||
+		r.Home != "" ||
+		len(r.Cache) > 0 ||
+		len(r.GlobalCache) > 0 ||
+		len(r.Ports) > 0) {
+		return fmt.Errorf("image, home, cache, global_cache and ports fields are only applicable to %s runtimes", RUNTIME_CONTAINER)
+	}
+	if r.Type == RUNTIME_CONTAINER && r.Image == "" {
+		return fmt.Errorf("image field is required for %s runtimes", RUNTIME_CONTAINER)
 	}
 	return nil
 }
@@ -132,6 +157,13 @@ func (s Step) Validate() error {
 			return err
 		}
 	}
+	if s.If != nil {
+		numFields += 1
+		err := s.If.Validate()
+		if err != nil {
+			return err
+		}
+	}
 
 	if numFields == 0 {
 		return fmt.Errorf("step %s does not contain an action", s.Name)
@@ -163,8 +195,8 @@ func (t TemplateStep) Validate() error {
 }
 
 func (i Insert) Validate() error {
-	if i.Placement != "" && i.Placement != INSERT_BEGIN && i.Placement != INSERT_END {
-		return fmt.Errorf("unknown placement in insert: %s (valid options are: %s, %s)", i.Placement, INSERT_BEGIN, INSERT_END)
+	if i.Placement != "" && i.Placement != INSERT_BEGIN && i.Placement != INSERT_END && i.Placement != INSERT_UNIQUE {
+		return fmt.Errorf("unknown placement in insert: %s (valid options are: %s, %s, %s)", i.Placement, INSERT_BEGIN, INSERT_END, INSERT_UNIQUE)
 	}
 	return nil
 }
@@ -177,5 +209,15 @@ func (b BrowserStep) Validate() error {
 }
 
 func (e EditDredgeFileStep) Validate() error {
+	return nil
+}
+
+func (i IfStep) Validate() error {
+	if i.Cond == "" {
+		return fmt.Errorf("cond field is required for if")
+	}
+	if len(i.Steps) == 0 {
+		return fmt.Errorf("1 or more steps are required for if")
+	}
 	return nil
 }

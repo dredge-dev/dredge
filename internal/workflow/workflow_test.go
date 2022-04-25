@@ -16,14 +16,17 @@ func TestExecuteShellStep(t *testing.T) {
 	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("drg-%d", rand.Intn(100000)))
 	defer os.Remove(tmpFile)
 
+	e := exec.EmptyExec("")
 	workflow := &exec.Workflow{
-		Exec:        exec.EmptyExec(""),
+		Exec:        e,
 		Name:        "workflow",
 		Description: "perform work",
 		Steps: []config.Step{
 			{
 				Shell: &config.ShellStep{
-					Cmd: fmt.Sprintf("touch %s", tmpFile),
+					Cmd:    fmt.Sprintf("touch %s && echo hello && echo world >&2", tmpFile),
+					StdOut: "OUTPUT",
+					StdErr: "ERR",
 				},
 			},
 		},
@@ -34,4 +37,7 @@ func TestExecuteShellStep(t *testing.T) {
 
 	_, err = os.Stat(tmpFile)
 	assert.Nil(t, err)
+
+	assert.Equal(t, "hello\n", e.Env["OUTPUT"])
+	assert.Equal(t, "world\n", e.Env["ERR"])
 }

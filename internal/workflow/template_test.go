@@ -141,6 +141,36 @@ func TestTemplate(t *testing.T) {
 			output: "80,1234,5000",
 			err:    nil,
 		},
+		"isTrue true": {
+			input:  "{{ if isTrue .val }}Hello{{ end }} {{ if isTrue .val2 }}world{{ end }}",
+			env:    exec.Env{"val": "true", "val2": "yes"},
+			output: "Hello world",
+			err:    nil,
+		},
+		"isTrue false": {
+			input:  "{{ if isTrue .val }}Hello{{ end }} {{ if isTrue .val2 }}world{{ end }}",
+			env:    exec.Env{"val": "false", "val2": "no"},
+			output: " ",
+			err:    nil,
+		},
+		"isFalse true": {
+			input:  "{{ if isFalse .val }}Hello{{ end }} {{ if isFalse .val2 }}world{{ end }}",
+			env:    exec.Env{"val": "false", "val2": "no"},
+			output: "Hello world",
+			err:    nil,
+		},
+		"isFalse false": {
+			input:  "{{ if isFalse .val }}Hello{{ end }} {{ if isFalse .val2 }}world{{ end }}",
+			env:    exec.Env{"val": "true", "val2": "yes"},
+			output: " ",
+			err:    nil,
+		},
+		"trimSpace": {
+			input:  "{{ trimSpace \" hello \" }}",
+			env:    exec.NewEnv(),
+			output: "hello",
+			err:    nil,
+		},
 	}
 
 	for testName, test := range tests {
@@ -169,12 +199,20 @@ func TestInsert(t *testing.T) {
 			postContent: "hello",
 			errorMsg:    "",
 		},
-		"new file": {
+		"new file begin": {
 			preContent:  "",
 			insert:      &config.Insert{Placement: "begin"},
 			text:        "hello",
 			dest:        dstPath,
-			postContent: "hello\n",
+			postContent: "hello",
+			errorMsg:    "",
+		},
+		"new file end": {
+			preContent:  "",
+			insert:      &config.Insert{Placement: "end"},
+			text:        "hello",
+			dest:        dstPath,
+			postContent: "hello",
 			errorMsg:    "",
 		},
 		"prefix content": {
@@ -188,6 +226,30 @@ func TestInsert(t *testing.T) {
 		"suffix content": {
 			preContent:  "hello",
 			insert:      &config.Insert{Placement: "end"},
+			text:        "world",
+			dest:        dstPath,
+			postContent: "hello\nworld",
+			errorMsg:    "",
+		},
+		"unique content new": {
+			preContent:  "hello\nworld",
+			insert:      &config.Insert{Placement: "unique"},
+			text:        "new",
+			dest:        dstPath,
+			postContent: "hello\nworld\nnew",
+			errorMsg:    "",
+		},
+		"unique content exists": {
+			preContent:  "hello\nworld",
+			insert:      &config.Insert{Placement: "unique"},
+			text:        "hello",
+			dest:        dstPath,
+			postContent: "hello\nworld",
+			errorMsg:    "",
+		},
+		"unique content exists 2": {
+			preContent:  "hello\nworld",
+			insert:      &config.Insert{Placement: "unique"},
 			text:        "world",
 			dest:        dstPath,
 			postContent: "hello\nworld",

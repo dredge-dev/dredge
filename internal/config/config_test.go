@@ -7,19 +7,17 @@ import (
 )
 
 func TestGetHome(t *testing.T) {
-	customHome := "/my-home"
-
 	tests := map[string]struct {
 		runtime Runtime
 		home    string
 	}{
 		"default home": {
-			runtime: Runtime{Home: nil},
+			runtime: Runtime{Home: ""},
 			home:    DEFAULT_HOME,
 		},
 		"custom home": {
-			runtime: Runtime{Home: &customHome},
-			home:    customHome,
+			runtime: Runtime{Home: "/my-home"},
+			home:    "/my-home",
 		},
 	}
 

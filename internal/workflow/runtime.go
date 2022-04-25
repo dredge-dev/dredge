@@ -1,76 +1,119 @@
 package workflow
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	osExec "os/exec"
+	"sort"
 	"strings"
 
 	"github.com/dredge-dev/dredge/internal/config"
 	"github.com/dredge-dev/dredge/internal/exec"
 )
 
+const dredgeDir = ".dredge"
+const cacheDir = "cache"
+
 type Runtime struct {
-	Env      exec.Env
-	Template string
+	Env    exec.Env
+	Config config.Runtime
 }
 
-func GetRuntime(runtimes []config.Runtime, name string, env exec.Env) (*Runtime, error) {
+func GetRuntime(env exec.Env, runtimes []config.Runtime, name string) (*Runtime, error) {
 	if name == "" {
-		return createDefaultRuntime(env)
+		return &Runtime{env, config.Runtime{Type: "native"}}, nil
 	}
 	for _, r := range runtimes {
 		if name == r.Name {
-			runtime, err := createRuntime(r, env)
-			if err != nil {
-				return nil, err
-			}
-			return runtime, nil
+			return &Runtime{env, r}, nil
 		}
 	}
 	return nil, fmt.Errorf("Runtime %s is not defined", name)
 }
 
-func createDefaultRuntime(e exec.Env) (*Runtime, error) {
-	return createRuntime(config.Runtime{Type: "native"}, e)
-}
-
-func createRuntime(r config.Runtime, e exec.Env) (*Runtime, error) {
-	if r.Type == "container" {
-		return createContainerRuntime(r, e)
-	} else if r.Type == "native" {
-		return createNativeRuntime(r, e)
+func (r *Runtime) Execute(interactive bool, command string, stdin io.Reader, stdout, stderr *bytes.Buffer) error {
+	cmd, err := r.GetCommand(interactive, command)
+	if err != nil {
+		return err
 	}
-	return nil, fmt.Errorf("Runtime type %s is not defined", r.Type)
+	osCmd := osExec.Command("/bin/bash", "-c", cmd)
+	osCmd.Env = os.Environ()
+	if stdin != nil {
+		osCmd.Stdin = stdin
+	} else {
+		osCmd.Stdin = os.Stdin
+	}
+	if stdout != nil {
+		osCmd.Stdout = stdout
+	} else {
+		osCmd.Stdout = os.Stdout
+	}
+	if stderr != nil {
+		osCmd.Stderr = stderr
+	} else {
+		osCmd.Stderr = os.Stderr
+	}
+	return osCmd.Run()
 }
 
-func createContainerRuntime(r config.Runtime, e exec.Env) (*Runtime, error) {
-	workDir := r.GetHome()
+func (r *Runtime) GetCommand(interactive bool, cmd string) (string, error) {
+	var command string
+	var err error
+	if r.Config.Type == config.RUNTIME_NATIVE {
+		command = cmd
+	} else if r.Config.Type == config.RUNTIME_CONTAINER {
+		command, err = r.getContainerCommand(interactive, cmd)
+	} else {
+		err = fmt.Errorf("unknown runtime type %s", r.Config.Type)
+	}
+	if err != nil {
+		return "", err
+	}
+	return Template(command, r.Env)
+}
+
+func (r *Runtime) getContainerCommand(interactive bool, cmd string) (string, error) {
+	workDir := r.Config.GetHome()
 
 	currentDir, err := os.Getwd()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	var envVars []string
-	for variable, value := range e {
+	for variable, value := range r.Env {
 		envVars = append(envVars, fmt.Sprintf("-e %s=%s", variable, value))
 	}
+	sort.Strings(envVars)
 
 	var volumes []string
-	for _, c := range r.Cache {
+	for _, c := range r.Config.Cache {
 		if !strings.HasPrefix(c, "/") {
-			return nil, fmt.Errorf("Invalid cache path (%s): path should start with /", c)
+			return "", fmt.Errorf("Invalid cache path (%s): path should start with /", c)
 		}
-		volumes = append(volumes, fmt.Sprintf("-v %s/.dredge/cache%s:%s", currentDir, c, c))
+		volumes = append(volumes, fmt.Sprintf("-v %s/%s/%s%s:%s", currentDir, dredgeDir, cacheDir, c, c))
+	}
+	if len(r.Config.GlobalCache) > 0 {
+		globalCacheDir, err := getGlobalCacheDir(r.Config)
+		if err != nil {
+			return "", err
+		}
+		for _, c := range r.Config.GlobalCache {
+			if !strings.HasPrefix(c, "/") {
+				return "", fmt.Errorf("Invalid cache path (%s): path should start with /", c)
+			}
+			volumes = append(volumes, fmt.Sprintf("-v %s%s:%s", globalCacheDir, c, c))
+		}
 	}
 	volumes = append(volumes, fmt.Sprintf("-v %s:%s", currentDir, workDir))
 
 	var ports []string
-	for _, p := range r.Ports {
-		portsString, err := Template(p, e)
+	for _, p := range r.Config.Ports {
+		portsString, err := Template(p, r.Env)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		portsParts := strings.Split(portsString, ",")
 		for _, port := range portsParts {
@@ -84,33 +127,28 @@ func createContainerRuntime(r config.Runtime, e exec.Env) (*Runtime, error) {
 		}
 	}
 
-	return &Runtime{
-		e,
-		fmt.Sprintf(
-			"docker run --rm %s %s %s -w %s -it %s {{ .cmd }}",
-			strings.Join(envVars, " "), strings.Join(volumes, " "), strings.Join(ports, " "), workDir, r.Image),
-	}, nil
-}
-
-func createNativeRuntime(r config.Runtime, e exec.Env) (*Runtime, error) {
-	return &Runtime{e, "{{ .cmd }}"}, nil
-}
-
-func (r *Runtime) Execute(command string) error {
-	cmd := osExec.Command("/bin/bash", "-c", r.getCommand(command))
-	cmd.Env = os.Environ()
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}
-
-func (r *Runtime) getCommand(cmd string) string {
-	command := strings.Replace(r.Template, "{{ .cmd }}", cmd, -1)
-
-	for variable, value := range r.Env {
-		command = strings.Replace(command, fmt.Sprintf("{{ .%s }}", variable), value, -1)
+	flags := ""
+	if interactive {
+		flags = "-it"
 	}
 
-	return command
+	return fmt.Sprintf(
+		"docker run --rm %s %s %s -w %s %s %s %s",
+		strings.Join(envVars, " "), strings.Join(volumes, " "), strings.Join(ports, " "), workDir, flags, r.Config.Image, cmd), nil
+}
+
+func getGlobalCacheDir(r config.Runtime) (string, error) {
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	globalCacheDir := fmt.Sprintf("%s/%s/%s/%s", userHome, dredgeDir, cacheDir, r.Name)
+
+	err = os.MkdirAll(globalCacheDir, os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	return globalCacheDir, nil
 }

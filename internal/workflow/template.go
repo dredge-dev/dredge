@@ -30,6 +30,21 @@ var TEMPLATE_FUNCTIONS = template.FuncMap{
 		}
 		return s1 + sep + s2
 	},
+	"trimSpace": func(s string) string {
+		return strings.TrimSpace(s)
+	},
+	"isTrue":  isTrue,
+	"isFalse": isFalse,
+}
+
+func isTrue(s string) bool {
+	l := strings.ToLower(s)
+	return l == "1" || l == "t" || l == "true" || l == "yes"
+}
+
+func isFalse(s string) bool {
+	l := strings.ToLower(s)
+	return l == "0" || l == "f" || l == "false" || l == "no"
 }
 
 func executeTemplate(workflow *exec.Workflow, step *config.TemplateStep) error {
@@ -57,10 +72,23 @@ func insert(insert *config.Insert, text string, dest string) error {
 	}
 
 	if insert.Section == "" {
-		if insert.Placement == "" || insert.Placement == config.INSERT_END {
+		if len(currentContent) == 0 {
+			return ioutil.WriteFile(dest, []byte(text), 0644)
+		} else if insert.Placement == "" || insert.Placement == config.INSERT_END {
 			return ioutil.WriteFile(dest, []byte(currentContent+"\n"+text), 0644)
 		} else if insert.Placement == config.INSERT_BEGIN {
 			return ioutil.WriteFile(dest, []byte(text+"\n"+currentContent), 0644)
+		} else if insert.Placement == config.INSERT_UNIQUE {
+			found := false
+			for _, line := range strings.Split(currentContent, "\n") {
+				if text == line {
+					found = true
+				}
+			}
+			if !found {
+				return ioutil.WriteFile(dest, []byte(currentContent+"\n"+text), 0644)
+			}
+			return nil
 		}
 	}
 
