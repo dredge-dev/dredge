@@ -12,9 +12,15 @@ import (
 
 func ExecuteWorkflow(workflow *exec.Workflow) error {
 	for _, input := range workflow.Inputs {
-		err := workflow.Exec.Env.AddInput(input, os.Stdin)
+		skip, err := Template(input.Skip, workflow.Exec.Env)
 		if err != nil {
 			return err
+		}
+		if skip != "true" {
+			err := workflow.Exec.Env.AddInput(input, os.Stdin)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return executeSteps(workflow, workflow.Steps)

@@ -159,6 +159,12 @@ func TestGetCommand(t *testing.T) {
 			interactive:   true,
 			outputCommand: "test || out",
 		},
+		"container with ||": {
+			runtime:       &Runtime{Env: env, Config: buildContainer},
+			inputCommand:  "test || out",
+			interactive:   true,
+			outputCommand: fmt.Sprintf("docker run --rm -e HI=hello -e ISSUES=false -e PORTS=1234,80 -v %s/.dredge/cache/go:/go -v %s:/home -p 8080:8080 -w /home -it build-image:latest test || out", wd, wd),
+		},
 		"command with if": {
 			runtime:       &Runtime{Env: env, Config: config.Runtime{Type: "native"}},
 			inputCommand:  "gh repo create {{if isFalse .ISSUES}}--disable-issues{{end}}",

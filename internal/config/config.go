@@ -71,6 +71,7 @@ type Input struct {
 	Type         string   `yaml:",omitempty"`
 	Values       []string `yaml:",omitempty"`
 	DefaultValue string   `yaml:"default_value,omitempty"`
+	Skip         string   `yaml:",omitempty"`
 }
 
 type Step struct {
