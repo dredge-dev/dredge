@@ -22,6 +22,18 @@ type CommandOutput struct {
 	Output interface{}
 }
 
+func GetResources(e *exec.DredgeExec) ([]string, error) {
+	var resources []string
+	for name, _ := range e.DredgeFile.Resources {
+		_, err := GetResourceDefinition(e, name)
+		if err != nil {
+			return nil, err
+		}
+		resources = append(resources, name)
+	}
+	return resources, nil
+}
+
 func GetResource(e *exec.DredgeExec, create ProviderCreator, resourceName string) (*Resource, error) {
 	rd, err := GetResourceDefinition(e, resourceName)
 	if err != nil {

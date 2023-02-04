@@ -57,9 +57,10 @@ func addWorkflows(de *exec.DredgeExec, cmd *cobra.Command) error {
 
 func createWorkflowCommand(w *exec.Workflow) (*cobra.Command, error) {
 	return &cobra.Command{
-		Use:   w.Name,
-		Short: w.Description,
-		Long:  w.Description,
+		Use:     w.Name,
+		Short:   w.Description,
+		Long:    w.Description,
+		GroupID: "workflow",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return workflow.ExecuteWorkflow(w)
 		},
@@ -68,10 +69,15 @@ func createWorkflowCommand(w *exec.Workflow) (*cobra.Command, error) {
 
 func createBucketCommand(b *exec.Bucket) (*cobra.Command, error) {
 	command := &cobra.Command{
-		Use:   b.Name,
-		Short: b.Description,
-		Long:  b.Description,
+		Use:     b.Name,
+		Short:   b.Description,
+		Long:    b.Description,
+		GroupID: "workflow",
 	}
+	command.AddGroup(&cobra.Group{
+		ID:    "workflow",
+		Title: "Workflows:",
+	})
 	workflows, err := b.GetWorkflows()
 	if err != nil {
 		return nil, err

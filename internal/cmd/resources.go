@@ -16,39 +16,51 @@ var textParam string
 
 type ArgsParser func(args []string) (string, map[string]string, error)
 
+func GetResourcesHelp(e *exec.DredgeExec) string {
+	resources, err := resource.GetResources(e)
+	if err != nil || len(resources) == 0 {
+		return ""
+	}
+	return "\n\nResources: " + strings.Join(resources, ", ")
+}
+
 func initResourceCommands(e *exec.DredgeExec, rootCmd *cobra.Command) error {
 	rootCmd.AddCommand(&cobra.Command{
-		Use:   "get <resource>",
-		Short: "Get all resources of the provided type",
+		Use:     "get <resource>",
+		Short:   "Get all resources of the provided type",
+		GroupID: "resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runResourceCommand("get", args, ResourceArgsParser, e, os.Stdin, os.Stdout)
 		},
 	})
 	rootCmd.AddCommand(&cobra.Command{
-		Use:   "create <resource>",
-		Short: "Create a resource of the provided type",
+		Use:     "create <resource>",
+		Short:   "Create a resource of the provided type",
+		GroupID: "resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runResourceCommand("create", args, ResourceArgsParser, e, os.Stdin, os.Stdout)
 		},
 	})
 	rootCmd.AddCommand(&cobra.Command{
-		Use:   "describe <resource>/<name>",
-		Short: "Describe a resource with the provided type and name",
+		Use:     "describe <resource>/<name>",
+		Short:   "Describe a resource with the provided type and name",
+		GroupID: "resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runResourceCommand("describe", args, ResourceAndNameArgsParser, e, os.Stdin, os.Stdout)
 		},
 	})
 	rootCmd.AddCommand(&cobra.Command{
-		Use:   "update <resource>/<name>",
-		Short: "Update a resource with the provided type and name",
+		Use:     "update <resource>/<name>",
+		Short:   "Update a resource with the provided type and name",
+		GroupID: "resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runResourceCommand("update", args, ResourceAndNameArgsParser, e, os.Stdin, os.Stdout)
 		},
 	})
 	searchCmd := &cobra.Command{
-		Use:   "search <resource>",
-		Short: "Search for a resource of the provided type",
-
+		Use:     "search <resource>",
+		Short:   "Search for a resource of the provided type",
+		GroupID: "resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runResourceCommand("search", args, ResourceAndTextArgsParser, e, os.Stdin, os.Stdout)
 		},
