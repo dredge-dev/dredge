@@ -1,6 +1,6 @@
 # Dredge - Toil less, code more
 
-Dredge automates software development workflows.
+Dredge automates software DevOps workflows.
 
 ## Dredgefile
 

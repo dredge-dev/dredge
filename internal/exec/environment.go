@@ -24,6 +24,12 @@ func (e Env) AddVariables(v config.Variables) {
 	}
 }
 
+func (e Env) AddInputs(inputs map[string]string) {
+	for key, value := range inputs {
+		e[key] = value
+	}
+}
+
 func (e Env) AddInput(input config.Input, reader io.Reader) error {
 	var value string
 	value = os.Getenv(input.Name)

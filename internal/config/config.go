@@ -24,6 +24,7 @@ type DredgeFile struct {
 	Runtimes  []Runtime  `yaml:",omitempty"`
 	Workflows []Workflow `yaml:",omitempty"`
 	Buckets   []Bucket   `yaml:",omitempty"`
+	Resources Resources  `yaml:",omitempty"`
 }
 
 type Variables map[string]string
@@ -115,6 +116,15 @@ type EditDredgeFileStep struct {
 type IfStep struct {
 	Cond  string
 	Steps []Step `yaml:",omitempty"`
+}
+
+type Resources map[string]Resource
+
+type Resource []ResourceProvider
+
+type ResourceProvider struct {
+	Provider string
+	Config   map[string]string `yaml:",omitempty"`
 }
 
 func NewDredgeFile(buf []byte) (*DredgeFile, error) {

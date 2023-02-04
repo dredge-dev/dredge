@@ -20,6 +20,7 @@ func (dredgeFile *DredgeFile) Validate() error {
 			return err
 		}
 	}
+	// TODO Validate resources here.
 	return nil
 }
 

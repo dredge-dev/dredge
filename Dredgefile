@@ -1,35 +1,25 @@
-variables:
-  GO_VERSION: "1.17"
 runtimes:
-  - name: build-container
-    type: container
-    image: golang:{{ .GO_VERSION }}
-    cache:
-      - /go
   - name: gh-cli
     type: container
     image: ghcr.io/supportpal/github-gh-cli
     cache:
       - /root/.config/gh
+resources:
+  release:
+    - provider: github-releases
+  issue:
+    - provider: github-issues
 workflows:
   - name: build
-    description: Build the executable
+    description: Build the drg executable
     steps:
       - shell:
           cmd: go build -o drg
-          runtime: build-container
-  - name: run
-    description: Run the executable
-    steps:
-      - shell:
-          cmd: ./drg
-          runtime: build-container
   - name: test
     description: Run the tests
     steps:
       - shell:
           cmd: go test ./...
-          runtime: build-container
   - name: install
     description: Install drg
     steps:
