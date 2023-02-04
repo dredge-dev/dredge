@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
 
 	"github.com/dredge-dev/dredge/internal/resource"
 )
+
+var URL_RE = regexp.MustCompile(`/issues/([0-9]+)`)
 
 type GithubIssuesProvider struct {
 }
@@ -80,7 +83,6 @@ func (g *GithubIssuesProvider) Get(callbacks resource.Callbacks) (interface{}, e
 }
 
 func (g *GithubIssuesProvider) Create(callbacks resource.Callbacks) (interface{}, error) {
-	// TODO Implement create
 	inputs, err := callbacks.RequestInput([]resource.InputRequest{
 		{
 			Name:        "title",
@@ -91,15 +93,36 @@ func (g *GithubIssuesProvider) Create(callbacks resource.Callbacks) (interface{}
 			Name:         "type",
 			Description:  "",
 			Type:         resource.Select,
-			Values:       []string{"bug", "feature request"},
+			Values:       []string{"bug", "feature"},
 			DefaultValue: "bug",
+		},
+		{
+			Name:        "description",
+			Description: "",
+			Type:        resource.Text,
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
+	title := inputs["title"]
+	body := inputs["description"]
+	label := inputs["type"]
+	if label == "feature" {
+		label = "enhancement"
+	}
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("gh issue create --title '%s' --body '%s' --label '%s'", title, body, label))
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	p := URL_RE.FindStringSubmatch(string(output))
+	if len(p) < 1 {
+		return nil, fmt.Errorf("format error in gh output")
+	}
+	name := p[1]
 	return map[string]interface{}{
-		"name":  "3",
+		"name":  name,
 		"title": inputs["title"],
 		"type":  inputs["type"],
 		"state": "open",

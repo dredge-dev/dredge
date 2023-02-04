@@ -1,12 +1,18 @@
 package providers
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"os/exec"
+	"regexp"
 	"strings"
 
+	"github.com/creack/pty"
 	"github.com/dredge-dev/dredge/internal/resource"
 )
+
+var TERM_CHARS_RE = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))")
 
 type GithubReleasesProvider struct {
 }
@@ -22,8 +28,6 @@ func (g *GithubReleasesProvider) Init(config map[string]string) error {
 func (g *GithubReleasesProvider) ExecuteCommand(commandName string, callbacks resource.Callbacks) (interface{}, error) {
 	if commandName == "get" {
 		return g.Get(callbacks)
-	} else if commandName == "search" {
-		return g.Search(callbacks)
 	} else if commandName == "describe" {
 		return g.Describe(callbacks)
 	}
@@ -31,11 +35,17 @@ func (g *GithubReleasesProvider) ExecuteCommand(commandName string, callbacks re
 }
 
 func (g *GithubReleasesProvider) Get(callbacks resource.Callbacks) (interface{}, error) {
-	cmd := exec.Command("/bin/bash", "-c", "SHELL=/bin/bash gh release list")
-	output, err := cmd.CombinedOutput()
+	cmd := exec.Command("/bin/bash", "-c", "gh release list")
+	f, err := pty.Start(cmd)
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
+	bytes, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	output := TERM_CHARS_RE.ReplaceAllString(string(bytes), "")
 	lines := strings.Split(string(output), "\n")
 	if len(lines) == 0 {
 		return nil, fmt.Errorf("no output from gh")
@@ -45,56 +55,53 @@ func (g *GithubReleasesProvider) Get(callbacks resource.Callbacks) (interface{},
 	tagIndex := strings.Index(lines[0], "TAG NAME")
 	publishedIndex := strings.Index(lines[0], "PUBLISHED")
 	if titleIndex != 0 || typeIndex <= titleIndex || tagIndex <= typeIndex || publishedIndex <= tagIndex {
-		return nil, fmt.Errorf("format error in gh output lines[0]:%s, titleIndex:%d typeIndex:%d tagIndex:%d publishedIndex:%d", lines, titleIndex, typeIndex, tagIndex, publishedIndex)
+		return nil, fmt.Errorf("format error in gh output")
 	}
 	var out []map[string]interface{}
 	for _, line := range lines[1:] {
-		v := map[string]interface{}{
-			"title": strings.Trim(line[titleIndex:typeIndex], " "),
-			"name":  strings.Trim(line[tagIndex:publishedIndex], " "),
-			"date":  strings.Trim(line[publishedIndex:], " "),
+		if len(line) > publishedIndex {
+			v := map[string]interface{}{
+				"title": strings.Trim(line[titleIndex:typeIndex], " "),
+				"name":  strings.Trim(line[tagIndex:publishedIndex], " "),
+				"date":  strings.Trim(line[publishedIndex:len(line)-1], " "),
+			}
+			out = append(out, v)
 		}
-		out = append(out, v)
 	}
 	return out, nil
 }
 
-func (g *GithubReleasesProvider) Search(callbacks resource.Callbacks) (interface{}, error) {
-	inputs, err := callbacks.RequestInput([]resource.InputRequest{
-		{
-			Name:        "text",
-			Description: "Search text",
-			Type:        resource.Text,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	var ret []map[string]interface{}
-	ret = append(ret, map[string]interface{}{
-		"name":  inputs["text"],
-		"date":  "yesterday",
-		"title": "first version",
-		"notes": "https://github.com/dredge-dev/dredge/releases/tag/v0.0.6",
-	})
-	return ret, nil
+type GithubRelease struct {
+	Author      GithubAuthor
+	PublishedAt string
+	Url         string
+	Name        string
+	Body        string
 }
 
 func (g *GithubReleasesProvider) Describe(callbacks resource.Callbacks) (interface{}, error) {
 	inputs, err := callbacks.RequestInput([]resource.InputRequest{
 		{
 			Name:        "name",
-			Description: "Release name",
+			Description: "Name",
 			Type:        resource.Text,
 		},
 	})
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("gh release view '%s' --json name,body,author,publishedAt,url", inputs["name"]))
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	var release GithubRelease
+	err = json.Unmarshal(output, &release)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{
-		"name":  inputs["name"],
-		"date":  "yesterday",
-		"title": "first version",
-		"notes": "https://github.com/dredge-dev/dredge/releases/tag/v0.0.6",
+		"name":        release.Name,
+		"description": release.Body,
+		"url":         release.Url,
+		"date":        release.PublishedAt,
+		"author":      release.Author.Login,
 	}, nil
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/dredge-dev/dredge/internal/resource"
 )
 
-var PORTS_REGEX = regexp.MustCompile(`0.0.0.0:([0-9]+)->([0-9]+)/tcp`)
+var PORTS_RE = regexp.MustCompile(`0.0.0.0:([0-9]+)->([0-9]+)/tcp`)
 
 type LocalDockerComposeProvider struct {
 	Env          string
@@ -106,8 +106,8 @@ func (l *LocalDockerComposeProvider) Describe(callbacks resource.Callbacks) (map
 			parts := strings.Split(line, " ")
 			containers = append(containers, parts[0])
 			ports := parts[len(parts)-1]
-			if PORTS_REGEX.MatchString(ports) {
-				p := PORTS_REGEX.FindStringSubmatch(ports)
+			if PORTS_RE.MatchString(ports) {
+				p := PORTS_RE.FindStringSubmatch(ports)
 				if len(p) > 1 && l.Proto == "http" {
 					ret["url"] = fmt.Sprintf("http://localhost:%s", p[1])
 				}
