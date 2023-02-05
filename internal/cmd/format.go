@@ -6,17 +6,21 @@ import (
 	"strings"
 
 	"github.com/dredge-dev/dredge/internal/resource"
+	"github.com/fatih/color"
+	"github.com/rodaine/table"
 )
+
+func init() {
+	table.DefaultHeaderFormatter = color.New(color.Bold).SprintfFunc()
+}
 
 func format(output *resource.CommandOutput) (string, error) {
 	if output.Type.Name == "object" {
 		return formatPlain(output.Type.IsArray, output.Output)
 	}
 
-	formatted, err := formatHeader(output.Type)
-	if err != nil {
-		return "", nil
-	}
+	out := new(strings.Builder)
+	tbl := table.New(formatHeader(output.Type)...).WithWriter(out)
 
 	if output.Type.IsArray {
 		s := reflect.ValueOf(output.Output)
@@ -24,21 +28,22 @@ func format(output *resource.CommandOutput) (string, error) {
 			return "", fmt.Errorf("expected array type but provider returned object")
 		}
 		for i := 0; i < s.Len(); i++ {
-			line, err := formatObject(output.Type, s.Index(i).Interface())
+			row, err := formatObject(output.Type, s.Index(i).Interface())
 			if err != nil {
 				return "", err
 			}
-			formatted = formatted + "\n" + line
+			tbl.AddRow(row...)
 		}
 	} else {
-		line, err := formatObject(output.Type, output.Output)
+		row, err := formatObject(output.Type, output.Output)
 		if err != nil {
 			return "", err
 		}
-		formatted = formatted + "\n" + line
+		tbl.AddRow(row...)
 	}
 
-	return formatted + "\n", nil
+	tbl.Print()
+	return out.String(), nil
 }
 
 func formatPlain(isArray bool, o interface{}) (string, error) {
@@ -67,56 +72,39 @@ func formatPlainObject(o interface{}) (string, error) {
 		return "", fmt.Errorf("provider did not return a proper object")
 	}
 
-	var output string
+	out := new(strings.Builder)
+	tbl := table.New("Field", "Value").WithWriter(out)
 	for _, key := range s.MapKeys() {
-		if len(output) > 0 {
-			output = output + "\n"
-		}
-		val := s.MapIndex(key)
-		fieldValue, err := formatField(val)
-		if err != nil {
-			return "", err
-		}
-		output = output + key.String() + ":" + "\t" + fieldValue
+		tbl.AddRow(key.String(), formatField(s.MapIndex(key)))
 	}
-	return output + "\n", nil
+	tbl.Print()
+	return out.String(), nil
 }
 
-func formatHeader(t *resource.Type) (string, error) {
-	var output string
+func formatHeader(t *resource.Type) []interface{} {
+	var output []interface{}
 	for _, f := range t.Fields {
-		if len(output) > 0 {
-			output = output + "\t"
-		}
-		output = output + strings.ToUpper(f.Name)
+		output = append(output, f.Name)
 	}
-	return output, nil
+	return output
 }
 
-func formatObject(t *resource.Type, o interface{}) (string, error) {
+func formatObject(t *resource.Type, o interface{}) ([]interface{}, error) {
 	s := reflect.ValueOf(o)
 	if s.Kind() != reflect.Map {
-		return "", fmt.Errorf("provider did not return a proper object")
+		return nil, fmt.Errorf("provider did not return a proper object")
 	}
-
-	var output string
+	var output []interface{}
 	for _, f := range t.Fields {
-		if len(output) > 0 {
-			output = output + "\t"
-		}
 		val := s.MapIndex(reflect.ValueOf(f.Name))
-		fieldValue, err := formatField(val)
-		if err != nil {
-			return "", err
-		}
-		output = output + fieldValue
+		output = append(output, formatField(val))
 	}
 	return output, nil
 }
 
-func formatField(o reflect.Value) (string, error) {
+func formatField(o reflect.Value) string {
 	if !o.IsValid() {
-		return "<empty>", nil
+		return "<empty>"
 	}
-	return fmt.Sprintf("%s", o), nil
+	return fmt.Sprintf("%s", o)
 }
