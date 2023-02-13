@@ -12,12 +12,12 @@ import (
 )
 
 type CliCallbacks struct {
-	reader io.Reader
-	writer io.Writer
+	Reader io.Reader
+	Writer io.Writer
 }
 
 func (c CliCallbacks) Log(level callbacks.LogLevel, msg string) error {
-	fmt.Fprintf(c.writer, "[%s] %s %s\n", time.Now().Format(time.RFC822), level, msg)
+	fmt.Fprintf(c.Writer, "[%s] %s %s\n", time.Now().Format(time.RFC822), level, msg)
 	return nil
 }
 
@@ -36,7 +36,7 @@ func (c CliCallbacks) RequestInput(inputRequests []callbacks.InputRequest) (map[
 func (c CliCallbacks) readInput(ir callbacks.InputRequest) (string, error) {
 	if ir.Type == callbacks.Text {
 		fmt.Printf("%s [%s]: ", ir.Description, ir.Name)
-		scanner := bufio.NewScanner(c.reader)
+		scanner := bufio.NewScanner(c.Reader)
 		if scanner.Scan() {
 			value := scanner.Text()
 			return value, nil

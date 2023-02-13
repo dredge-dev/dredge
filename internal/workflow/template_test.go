@@ -23,7 +23,7 @@ func TestExecuteTemplate(t *testing.T) {
 		Dest:  tmpFile,
 	}
 	workflow := &exec.Workflow{
-		Exec:        exec.EmptyExec(""),
+		Exec:        exec.EmptyExec("", nil),
 		Name:        "workflow",
 		Description: "My workflow",
 		Inputs: []config.Input{
@@ -58,7 +58,7 @@ func TestExecuteTemplateFromSource(t *testing.T) {
 	assert.Nil(t, err)
 
 	workflow := &exec.Workflow{
-		Exec:        exec.EmptyExec("./Dredgefile"),
+		Exec:        exec.EmptyExec("./Dredgefile", nil),
 		Name:        "workflow",
 		Description: "My workflow",
 		Inputs: []config.Input{

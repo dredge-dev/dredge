@@ -86,5 +86,6 @@ func openBrowser(workflow *exec.Workflow, b *config.BrowserStep) error {
 	if err != nil {
 		return err
 	}
+	// TODO Replace by callback
 	return browser.OpenURL(url)
 }

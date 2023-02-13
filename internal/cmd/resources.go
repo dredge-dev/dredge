@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"strings"
 
 	"github.com/dredge-dev/dredge/internal/exec"
@@ -30,7 +28,7 @@ func initResourceCommands(e *exec.DredgeExec, rootCmd *cobra.Command) error {
 		Short:   "Get all resources of the provided type",
 		GroupID: "resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runResourceCommand("get", args, ResourceArgsParser, e, os.Stdin, os.Stdout)
+			return printOrErr(runResourceCommand("get", args, ResourceArgsParser, e))
 		},
 	})
 	rootCmd.AddCommand(&cobra.Command{
@@ -38,7 +36,7 @@ func initResourceCommands(e *exec.DredgeExec, rootCmd *cobra.Command) error {
 		Short:   "Create a resource of the provided type",
 		GroupID: "resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runResourceCommand("create", args, ResourceArgsParser, e, os.Stdin, os.Stdout)
+			return printOrErr(runResourceCommand("create", args, ResourceArgsParser, e))
 		},
 	})
 	rootCmd.AddCommand(&cobra.Command{
@@ -46,7 +44,7 @@ func initResourceCommands(e *exec.DredgeExec, rootCmd *cobra.Command) error {
 		Short:   "Describe a resource with the provided type and name",
 		GroupID: "resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runResourceCommand("describe", args, ResourceAndNameArgsParser, e, os.Stdin, os.Stdout)
+			return printOrErr(runResourceCommand("describe", args, ResourceAndNameArgsParser, e))
 		},
 	})
 	rootCmd.AddCommand(&cobra.Command{
@@ -54,7 +52,7 @@ func initResourceCommands(e *exec.DredgeExec, rootCmd *cobra.Command) error {
 		Short:   "Update a resource with the provided type and name",
 		GroupID: "resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runResourceCommand("update", args, ResourceAndNameArgsParser, e, os.Stdin, os.Stdout)
+			return printOrErr(runResourceCommand("update", args, ResourceAndNameArgsParser, e))
 		},
 	})
 	searchCmd := &cobra.Command{
@@ -62,7 +60,7 @@ func initResourceCommands(e *exec.DredgeExec, rootCmd *cobra.Command) error {
 		Short:   "Search for a resource of the provided type",
 		GroupID: "resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runResourceCommand("search", args, ResourceAndTextArgsParser, e, os.Stdin, os.Stdout)
+			return printOrErr(runResourceCommand("search", args, ResourceAndTextArgsParser, e))
 		},
 	}
 	searchCmd.Flags().StringVar(&textParam, "text", "", "text to search")
@@ -102,33 +100,31 @@ func ResourceAndTextArgsParser(args []string) (string, map[string]string, error)
 	return resourceName, inputs, nil
 }
 
-func runResourceCommand(command string, args []string, argsParser ArgsParser, e *exec.DredgeExec, reader io.Reader, writer io.Writer) error {
+func runResourceCommand(command string, args []string, argsParser ArgsParser, e *exec.DredgeExec) (string, error) {
 	resourceName, namedArgs, err := argsParser(args)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	e.Env.AddInputs(namedArgs)
 
 	r, err := resource.GetResource(e, providers.CreateProvider, resourceName)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	output, err := r.ExecuteCommand(command, CliCallbacks{reader, writer})
+	output, err := r.ExecuteCommand(command, e.Callbacks)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return formatted(output, writer)
+	return format(output)
 }
 
-func formatted(output *resource.CommandOutput, writer io.Writer) error {
-	formatted, err := format(output)
+func printOrErr(output string, err error) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Fprint(writer, formatted)
+	fmt.Print(output)
 	return nil
 }

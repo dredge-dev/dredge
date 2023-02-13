@@ -15,11 +15,12 @@ const DefaultDredgefilePath = "./" + exec.DefaultDredgefileName
 func main() {
 	source := DefaultDredgefilePath
 	var de *exec.DredgeExec
+	c := cmd.CliCallbacks{Reader: os.Stdin, Writer: os.Stdout}
 
 	if _, err := os.Stat(source); errors.Is(err, os.ErrNotExist) {
-		de = exec.EmptyExec(config.SourcePath(source))
+		de = exec.EmptyExec(config.SourcePath(source), c)
 	} else {
-		de, err = exec.NewExec(config.SourcePath(source))
+		de, err = exec.NewExec(config.SourcePath(source), c)
 		if err != nil {
 			log.Fatalf("Error while reading Dredgefile: %s\n", err)
 		}

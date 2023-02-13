@@ -3,6 +3,7 @@ package exec
 import (
 	"fmt"
 
+	"github.com/dredge-dev/dredge/internal/callbacks"
 	"github.com/dredge-dev/dredge/internal/config"
 )
 
@@ -11,6 +12,9 @@ type DredgeExec struct {
 	Source     config.SourcePath
 	DredgeFile *config.DredgeFile
 	Env        Env
+	Callbacks  callbacks.Callbacks
+	// TODO Should be a hidden field & DredgeExec can implement callbacks!
+	// See DredgeExecCallback functionality -> to be lifted in here!
 }
 
 type Bucket struct {
@@ -28,15 +32,16 @@ type Workflow struct {
 	Steps       []config.Step
 }
 
-func EmptyExec(source config.SourcePath) *DredgeExec {
+func EmptyExec(source config.SourcePath, c callbacks.Callbacks) *DredgeExec {
 	return &DredgeExec{
 		Source:     source,
 		DredgeFile: &config.DredgeFile{},
 		Env:        NewEnv(),
+		Callbacks:  c,
 	}
 }
 
-func NewExec(source config.SourcePath) (*DredgeExec, error) {
+func NewExec(source config.SourcePath, c callbacks.Callbacks) (*DredgeExec, error) {
 	actualSource, dredgeFile, err := ReadDredgeFile(source)
 	if err != nil {
 		return nil, err
@@ -49,6 +54,7 @@ func NewExec(source config.SourcePath) (*DredgeExec, error) {
 		Source:     actualSource,
 		DredgeFile: dredgeFile,
 		Env:        env,
+		Callbacks:  c,
 	}, nil
 }
 
@@ -68,6 +74,7 @@ func (exec *DredgeExec) Import(source config.SourcePath) (*DredgeExec, error) {
 		Source:     actualSource,
 		DredgeFile: imported,
 		Env:        env,
+		Callbacks:  exec.Callbacks,
 	}, nil
 }
 
@@ -109,7 +116,7 @@ func (exec *DredgeExec) GetWorkflow(bucketName, workflowName string) (*Workflow,
 			}
 		}
 	}
-	return nil, fmt.Errorf("Could not find workflow %s/%s", bucketName, workflowName)
+	return nil, fmt.Errorf("could not find workflow %s/%s", bucketName, workflowName)
 }
 
 func (exec *DredgeExec) GetBuckets() ([]*Bucket, error) {
@@ -130,7 +137,7 @@ func (exec *DredgeExec) GetBucket(bucketName string) (*Bucket, error) {
 			return exec.resolveBucket(b)
 		}
 	}
-	return nil, fmt.Errorf("Could not find bucket %s", bucketName)
+	return nil, fmt.Errorf("could not find bucket %s", bucketName)
 }
 
 func (exec *DredgeExec) resolveBucket(b config.Bucket) (*Bucket, error) {
@@ -140,7 +147,7 @@ func (exec *DredgeExec) resolveBucket(b config.Bucket) (*Bucket, error) {
 			var err error
 			de, err = exec.Import(b.Import.Source)
 			if err != nil {
-				return nil, fmt.Errorf("Could not load Dredgefile %s: %v", b.Import.Source, err)
+				return nil, fmt.Errorf("could not load Dredgefile %s: %v", b.Import.Source, err)
 			}
 		}
 		bucket, err := de.GetBucket(b.Import.Bucket)
@@ -180,7 +187,7 @@ func (exec *DredgeExec) resolveWorkflow(w config.Workflow) (*Workflow, error) {
 			var err error
 			de, err = exec.Import(w.Import.Source)
 			if err != nil {
-				return nil, fmt.Errorf("Could not load Dredgefile %s: %v", w.Import.Source, err)
+				return nil, fmt.Errorf("could not load Dredgefile %s: %v", w.Import.Source, err)
 			}
 		}
 		workflow, err := de.GetWorkflow(w.Import.Bucket, w.Import.Workflow)

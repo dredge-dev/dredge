@@ -14,7 +14,7 @@ const TEST_FILE = "tmp-dredge-if-test"
 
 func getTouchWorkflow(cond string) *exec.Workflow {
 	w := &exec.Workflow{
-		Exec: exec.EmptyExec(""),
+		Exec: exec.EmptyExec("", nil),
 		Name: "workflow",
 		Steps: []config.Step{
 			{
@@ -66,7 +66,7 @@ func TestExecuteIfStep(t *testing.T) {
 		},
 		"error in steps": {
 			workflow: &exec.Workflow{
-				Exec: exec.EmptyExec(""),
+				Exec: exec.EmptyExec("", nil),
 				Name: "workflow",
 				Steps: []config.Step{
 					{

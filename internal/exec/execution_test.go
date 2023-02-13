@@ -53,7 +53,7 @@ func TestNewExec(t *testing.T) {
 
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
-		d, err := NewExec(test.source)
+		d, err := NewExec(test.source, nil)
 		if test.dredgeFile == nil {
 			assert.Nil(t, d)
 		} else {
