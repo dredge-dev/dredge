@@ -17,6 +17,7 @@ func ExecuteWorkflow(workflow *exec.Workflow) error {
 			return err
 		}
 		if skip != "true" {
+			// TODO Replace AddInput with Callback
 			err := workflow.Exec.Env.AddInput(input, os.Stdin)
 			if err != nil {
 				return err

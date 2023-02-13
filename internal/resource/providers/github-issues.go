@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"regexp"
 
-	"github.com/dredge-dev/dredge/internal/resource"
+	"github.com/dredge-dev/dredge/internal/callbacks"
 )
 
 var URL_RE = regexp.MustCompile(`/issues/([0-9]+)`)
@@ -22,7 +22,7 @@ func (g *GithubIssuesProvider) Init(config map[string]string) error {
 	return nil
 }
 
-func (g *GithubIssuesProvider) ExecuteCommand(commandName string, callbacks resource.Callbacks) (interface{}, error) {
+func (g *GithubIssuesProvider) ExecuteCommand(commandName string, callbacks callbacks.Callbacks) (interface{}, error) {
 	if commandName == "get" {
 		return g.Get(callbacks)
 	} else if commandName == "create" {
@@ -48,7 +48,7 @@ type GithubLabel struct {
 	Name string
 }
 
-func (g *GithubIssuesProvider) Get(callbacks resource.Callbacks) (interface{}, error) {
+func (g *GithubIssuesProvider) Get(callbacks callbacks.Callbacks) (interface{}, error) {
 	cmd := exec.Command("/bin/bash", "-c", "gh issue list --json number,title,author,state,createdAt,labels")
 	output, err := cmd.Output()
 	if err != nil {
@@ -82,24 +82,24 @@ func (g *GithubIssuesProvider) Get(callbacks resource.Callbacks) (interface{}, e
 	return out, nil
 }
 
-func (g *GithubIssuesProvider) Create(callbacks resource.Callbacks) (interface{}, error) {
-	inputs, err := callbacks.RequestInput([]resource.InputRequest{
+func (g *GithubIssuesProvider) Create(c callbacks.Callbacks) (interface{}, error) {
+	inputs, err := c.RequestInput([]callbacks.InputRequest{
 		{
 			Name:        "title",
 			Description: "",
-			Type:        resource.Text,
+			Type:        callbacks.Text,
 		},
 		{
 			Name:         "type",
 			Description:  "",
-			Type:         resource.Select,
+			Type:         callbacks.Select,
 			Values:       []string{"bug", "feature"},
 			DefaultValue: "bug",
 		},
 		{
 			Name:        "description",
 			Description: "",
-			Type:        resource.Text,
+			Type:        callbacks.Text,
 		},
 	})
 	if err != nil {

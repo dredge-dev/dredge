@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/creack/pty"
-	"github.com/dredge-dev/dredge/internal/resource"
+	"github.com/dredge-dev/dredge/internal/callbacks"
 )
 
 var TERM_CHARS_RE = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))")
@@ -25,16 +25,16 @@ func (g *GithubReleasesProvider) Init(config map[string]string) error {
 	return nil
 }
 
-func (g *GithubReleasesProvider) ExecuteCommand(commandName string, callbacks resource.Callbacks) (interface{}, error) {
+func (g *GithubReleasesProvider) ExecuteCommand(commandName string, c callbacks.Callbacks) (interface{}, error) {
 	if commandName == "get" {
-		return g.Get(callbacks)
+		return g.Get(c)
 	} else if commandName == "describe" {
-		return g.Describe(callbacks)
+		return g.Describe(c)
 	}
 	return nil, fmt.Errorf("could not find command %s", commandName)
 }
 
-func (g *GithubReleasesProvider) Get(callbacks resource.Callbacks) (interface{}, error) {
+func (g *GithubReleasesProvider) Get(c callbacks.Callbacks) (interface{}, error) {
 	cmd := exec.Command("/bin/bash", "-c", "gh release list")
 	f, err := pty.Start(cmd)
 	if err != nil {
@@ -79,12 +79,12 @@ type GithubRelease struct {
 	Body        string
 }
 
-func (g *GithubReleasesProvider) Describe(callbacks resource.Callbacks) (interface{}, error) {
-	inputs, err := callbacks.RequestInput([]resource.InputRequest{
+func (g *GithubReleasesProvider) Describe(c callbacks.Callbacks) (interface{}, error) {
+	inputs, err := c.RequestInput([]callbacks.InputRequest{
 		{
 			Name:        "name",
 			Description: "Name",
-			Type:        resource.Text,
+			Type:        callbacks.Text,
 		},
 	})
 	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("gh release view '%s' --json name,body,author,publishedAt,url", inputs["name"]))

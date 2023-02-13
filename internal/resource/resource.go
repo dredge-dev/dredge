@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/dredge-dev/dredge/internal/callbacks"
 	"github.com/dredge-dev/dredge/internal/config"
 	"github.com/dredge-dev/dredge/internal/exec"
 )
@@ -65,13 +66,13 @@ func GetResource(e *exec.DredgeExec, create ProviderCreator, resourceName string
 	}, nil
 }
 
-func (r *Resource) ExecuteCommand(command string, callbacks Callbacks) (*CommandOutput, error) {
-	c, err := r.Definition.GetCommand(command)
+func (r *Resource) ExecuteCommand(command string, c callbacks.Callbacks) (*CommandOutput, error) {
+	commDef, err := r.Definition.GetCommand(command)
 	if err != nil {
 		return nil, err
 	}
 
-	outputType, err := GetType(r.Exec, c.OutputType)
+	outputType, err := GetType(r.Exec, commDef.OutputType)
 	if err != nil {
 		return nil, err
 	}
@@ -79,9 +80,9 @@ func (r *Resource) ExecuteCommand(command string, callbacks Callbacks) (*Command
 	// TODO If the result is not an array, stop when the first provider returns non-nil value
 	var outputs []interface{}
 	for _, provider := range r.Providers {
-		output, err := provider.ExecuteCommand(command, &DredgeEnvCallbacks{r.Name, r.Exec, callbacks})
+		output, err := provider.ExecuteCommand(command, &DredgeEnvCallbacks{r.Name, r.Exec, c})
 		if err != nil {
-			if _, ok := err.(*NoResult); !ok {
+			if _, ok := err.(*callbacks.NoResult); !ok {
 				return nil, err
 			}
 		} else {
@@ -123,17 +124,17 @@ func flatten(outputs []interface{}) ([]interface{}, error) {
 type DredgeEnvCallbacks struct {
 	ResourceName string
 	Exec         *exec.DredgeExec
-	Callbacks    Callbacks
+	Callbacks    callbacks.Callbacks
 }
 
-func (c *DredgeEnvCallbacks) Log(level LogLevel, msg string) error {
+func (c *DredgeEnvCallbacks) Log(level callbacks.LogLevel, msg string) error {
 	return c.Callbacks.Log(level, msg)
 }
 
-func (c *DredgeEnvCallbacks) RequestInput(inputRequests []InputRequest) (map[string]string, error) {
+func (c *DredgeEnvCallbacks) RequestInput(inputRequests []callbacks.InputRequest) (map[string]string, error) {
 	// TODO add inputs to the environment so it doesn't get asked twice
 	inputs := make(map[string]string)
-	var remainingRequests []InputRequest
+	var remainingRequests []callbacks.InputRequest
 
 	for _, inputRequest := range inputRequests {
 		fullName := c.ResourceName + "." + inputRequest.Name
@@ -156,4 +157,8 @@ func (c *DredgeEnvCallbacks) RequestInput(inputRequests []InputRequest) (map[str
 	}
 
 	return inputs, nil
+}
+
+func (c *DredgeEnvCallbacks) OpenUrl(url string) error {
+	return c.Callbacks.OpenUrl(url)
 }

@@ -1,8 +1,9 @@
-package resource
+package callbacks
 
 type Callbacks interface {
 	Log(level LogLevel, msg string) error
 	RequestInput(inputRequests []InputRequest) (map[string]string, error)
+	OpenUrl(url string) error
 }
 
 type LogLevel int
@@ -18,6 +19,12 @@ const (
 
 func (l LogLevel) String() string {
 	return [...]string{"Fatal", "Error", "Warn", "Info", "Debug", "Trace"}[l]
+}
+
+type NoResult struct{}
+
+func (n *NoResult) Error() string {
+	return "no result"
 }
 
 type InputType int
