@@ -12,9 +12,7 @@ type DredgeExec struct {
 	Source     config.SourcePath
 	DredgeFile *config.DredgeFile
 	Env        Env
-	Callbacks  callbacks.Callbacks
-	// TODO Should be a hidden field & DredgeExec can implement callbacks!
-	// See DredgeExecCallback functionality -> to be lifted in here!
+	callbacks  callbacks.Callbacks
 }
 
 type Bucket struct {
@@ -37,7 +35,7 @@ func EmptyExec(source config.SourcePath, c callbacks.Callbacks) *DredgeExec {
 		Source:     source,
 		DredgeFile: &config.DredgeFile{},
 		Env:        NewEnv(),
-		Callbacks:  c,
+		callbacks:  c,
 	}
 }
 
@@ -54,7 +52,7 @@ func NewExec(source config.SourcePath, c callbacks.Callbacks) (*DredgeExec, erro
 		Source:     actualSource,
 		DredgeFile: dredgeFile,
 		Env:        env,
-		Callbacks:  c,
+		callbacks:  c,
 	}, nil
 }
 
@@ -74,7 +72,7 @@ func (exec *DredgeExec) Import(source config.SourcePath) (*DredgeExec, error) {
 		Source:     actualSource,
 		DredgeFile: imported,
 		Env:        env,
-		Callbacks:  exec.Callbacks,
+		callbacks:  exec.callbacks,
 	}, nil
 }
 

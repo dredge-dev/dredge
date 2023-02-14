@@ -84,7 +84,7 @@ func ResourceAndNameArgsParser(args []string) (string, map[string]string, error)
 		return "", nil, fmt.Errorf("argument not in format <resource>/<name>")
 	}
 	return parts[0], map[string]string{
-		parts[0] + ".name": parts[1],
+		"name": parts[1],
 	}, nil
 }
 
@@ -92,12 +92,11 @@ func ResourceAndTextArgsParser(args []string) (string, map[string]string, error)
 	if len(args) < 1 {
 		return "", nil, fmt.Errorf("not enough arguments: missing <resource>")
 	}
-	resourceName := args[0]
 	inputs := make(map[string]string)
 	if textParam != "" {
-		inputs[resourceName+".text"] = textParam
+		inputs["text"] = textParam
 	}
-	return resourceName, inputs, nil
+	return args[0], inputs, nil
 }
 
 func runResourceCommand(command string, args []string, argsParser ArgsParser, e *exec.DredgeExec) (string, error) {
@@ -113,7 +112,7 @@ func runResourceCommand(command string, args []string, argsParser ArgsParser, e 
 		return "", err
 	}
 
-	output, err := r.ExecuteCommand(command, e.Callbacks)
+	output, err := r.ExecuteCommand(command, e)
 	if err != nil {
 		return "", err
 	}

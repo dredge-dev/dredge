@@ -3,28 +3,47 @@ package workflow
 import (
 	"bytes"
 	"fmt"
-	"os"
 
+	"github.com/dredge-dev/dredge/internal/callbacks"
 	"github.com/dredge-dev/dredge/internal/config"
 	"github.com/dredge-dev/dredge/internal/exec"
-	"github.com/pkg/browser"
 )
 
 func ExecuteWorkflow(workflow *exec.Workflow) error {
+	// TODO Re-arrange to get all inputs at once
 	for _, input := range workflow.Inputs {
 		skip, err := Template(input.Skip, workflow.Exec.Env)
 		if err != nil {
 			return err
 		}
 		if skip != "true" {
-			// TODO Replace AddInput with Callback
-			err := workflow.Exec.Env.AddInput(input, os.Stdin)
+			result, err := workflow.Exec.RequestInput([]callbacks.InputRequest{
+				toInputRequest(input),
+			})
 			if err != nil {
 				return err
 			}
+			workflow.Exec.Env[input.Name] = result[input.Name]
 		}
 	}
 	return executeSteps(workflow, workflow.Steps)
+}
+
+func toInputRequest(input config.Input) callbacks.InputRequest {
+	return callbacks.InputRequest{
+		Name:         input.Name,
+		Description:  input.Description,
+		Type:         toInputType(input.Type),
+		Values:       input.Values,
+		DefaultValue: input.DefaultValue,
+	}
+}
+
+func toInputType(t string) callbacks.InputType {
+	if t == config.INPUT_SELECT {
+		return callbacks.Select
+	}
+	return callbacks.Text
 }
 
 func executeSteps(workflow *exec.Workflow, steps []config.Step) error {
@@ -49,7 +68,7 @@ func executeStep(workflow *exec.Workflow, step config.Step) error {
 	} else if step.If != nil {
 		return executeIfStep(workflow, step.If)
 	}
-	return fmt.Errorf("No execution found for step %v", step.Name)
+	return fmt.Errorf("no execution found for step %v", step.Name)
 }
 
 func executeShellStep(workflow *exec.Workflow, shell *config.ShellStep) error {
@@ -86,6 +105,5 @@ func openBrowser(workflow *exec.Workflow, b *config.BrowserStep) error {
 	if err != nil {
 		return err
 	}
-	// TODO Replace by callback
-	return browser.OpenURL(url)
+	return workflow.Exec.OpenUrl(url)
 }

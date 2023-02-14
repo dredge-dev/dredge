@@ -80,7 +80,7 @@ func (r *Resource) ExecuteCommand(command string, c callbacks.Callbacks) (*Comma
 	// TODO If the result is not an array, stop when the first provider returns non-nil value
 	var outputs []interface{}
 	for _, provider := range r.Providers {
-		output, err := provider.ExecuteCommand(command, &DredgeEnvCallbacks{r.Name, r.Exec, c})
+		output, err := provider.ExecuteCommand(command, r.Exec)
 		if err != nil {
 			if _, ok := err.(*callbacks.NoResult); !ok {
 				return nil, err
@@ -119,46 +119,4 @@ func flatten(outputs []interface{}) ([]interface{}, error) {
 		}
 	}
 	return flat, nil
-}
-
-type DredgeEnvCallbacks struct {
-	ResourceName string
-	Exec         *exec.DredgeExec
-	Callbacks    callbacks.Callbacks
-}
-
-func (c *DredgeEnvCallbacks) Log(level callbacks.LogLevel, msg string) error {
-	return c.Callbacks.Log(level, msg)
-}
-
-func (c *DredgeEnvCallbacks) RequestInput(inputRequests []callbacks.InputRequest) (map[string]string, error) {
-	// TODO add inputs to the environment so it doesn't get asked twice
-	inputs := make(map[string]string)
-	var remainingRequests []callbacks.InputRequest
-
-	for _, inputRequest := range inputRequests {
-		fullName := c.ResourceName + "." + inputRequest.Name
-		if value, ok := c.Exec.Env[fullName]; ok {
-			inputs[inputRequest.Name] = value
-		} else {
-			remainingRequests = append(remainingRequests, inputRequest)
-		}
-	}
-
-	if len(remainingRequests) > 0 {
-		remainingInputs, err := c.Callbacks.RequestInput(remainingRequests)
-		if err != nil {
-			return nil, err
-		}
-
-		for inputName, inputValue := range remainingInputs {
-			inputs[inputName] = inputValue
-		}
-	}
-
-	return inputs, nil
-}
-
-func (c *DredgeEnvCallbacks) OpenUrl(url string) error {
-	return c.Callbacks.OpenUrl(url)
 }
