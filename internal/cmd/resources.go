@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/dredge-dev/dredge/internal/exec"
-	"github.com/dredge-dev/dredge/internal/resource"
-	"github.com/dredge-dev/dredge/internal/resource/providers"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +13,7 @@ var textParam string
 type ArgsParser func(args []string) (string, map[string]string, error)
 
 func GetResourcesHelp(e *exec.DredgeExec) string {
-	resources, err := resource.GetResources(e)
+	resources, err := e.GetResources()
 	if err != nil || len(resources) == 0 {
 		return ""
 	}
@@ -106,13 +104,7 @@ func runResourceCommand(command string, args []string, argsParser ArgsParser, e 
 	}
 
 	e.Env.AddInputs(namedArgs)
-
-	r, err := resource.GetResource(e, providers.CreateProvider, resourceName)
-	if err != nil {
-		return "", err
-	}
-
-	output, err := r.ExecuteCommand(command, e)
+	output, err := e.ExecuteResourceCommand(resourceName, command)
 	if err != nil {
 		return "", err
 	}

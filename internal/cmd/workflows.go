@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/dredge-dev/dredge/internal/config"
+	"github.com/dredge-dev/dredge/internal/config" // TODO Should this really depend on config
 	"github.com/dredge-dev/dredge/internal/exec"
-	"github.com/dredge-dev/dredge/internal/workflow"
+	"github.com/dredge-dev/dredge/internal/workflow" // TODO Should this really depend on workflow
 	"github.com/spf13/cobra"
 )
 

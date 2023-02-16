@@ -439,6 +439,31 @@ func TestStepValidate(t *testing.T) {
 			},
 			errorMsg: "1 or more steps are required for if",
 		},
+		"execute": {
+			step: Step{
+				Execute: &ExecuteStep{
+					Resource: "release",
+					Command:  "get",
+				},
+			},
+			errorMsg: "",
+		},
+		"execute without resource": {
+			step: Step{
+				Execute: &ExecuteStep{
+					Resource: "release",
+				},
+			},
+			errorMsg: "command field is required for execute",
+		},
+		"exeucte without command": {
+			step: Step{
+				Execute: &ExecuteStep{
+					Command: "get",
+				},
+			},
+			errorMsg: "resource field is required for execute",
+		},
 	}
 
 	for testName, test := range tests {

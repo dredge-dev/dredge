@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/dredge-dev/dredge/internal/callbacks"
+	"github.com/dredge-dev/dredge/internal/api"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/browser"
 )
@@ -16,12 +16,12 @@ type CliCallbacks struct {
 	Writer io.Writer
 }
 
-func (c CliCallbacks) Log(level callbacks.LogLevel, msg string) error {
+func (c CliCallbacks) Log(level api.LogLevel, msg string) error {
 	fmt.Fprintf(c.Writer, "[%s] %s %s\n", time.Now().Format(time.RFC822), level, msg)
 	return nil
 }
 
-func (c CliCallbacks) RequestInput(inputRequests []callbacks.InputRequest) (map[string]string, error) {
+func (c CliCallbacks) RequestInput(inputRequests []api.InputRequest) (map[string]string, error) {
 	inputs := map[string]string{}
 	for _, inputRequest := range inputRequests {
 		input, err := c.readInput(inputRequest)
@@ -33,8 +33,8 @@ func (c CliCallbacks) RequestInput(inputRequests []callbacks.InputRequest) (map[
 	return inputs, nil
 }
 
-func (c CliCallbacks) readInput(ir callbacks.InputRequest) (string, error) {
-	if ir.Type == callbacks.Text {
+func (c CliCallbacks) readInput(ir api.InputRequest) (string, error) {
+	if ir.Type == api.Text {
 		fmt.Printf("%s [%s]: ", ir.Description, ir.Name)
 		scanner := bufio.NewScanner(c.Reader)
 		if scanner.Scan() {
@@ -44,7 +44,7 @@ func (c CliCallbacks) readInput(ir callbacks.InputRequest) (string, error) {
 		if err := scanner.Err(); err != nil {
 			return "", err
 		}
-	} else if ir.Type == callbacks.Select {
+	} else if ir.Type == api.Select {
 		prompt := promptui.Select{
 			Label: fmt.Sprintf("%s [%s]", ir.Description, ir.Name),
 			Items: ir.Values,

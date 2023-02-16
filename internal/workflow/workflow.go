@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/dredge-dev/dredge/internal/callbacks"
+	"github.com/dredge-dev/dredge/internal/api"
 	"github.com/dredge-dev/dredge/internal/config"
 	"github.com/dredge-dev/dredge/internal/exec"
 )
@@ -17,7 +17,7 @@ func ExecuteWorkflow(workflow *exec.Workflow) error {
 			return err
 		}
 		if skip != "true" {
-			result, err := workflow.Exec.RequestInput([]callbacks.InputRequest{
+			result, err := workflow.Exec.RequestInput([]api.InputRequest{
 				toInputRequest(input),
 			})
 			if err != nil {
@@ -29,8 +29,8 @@ func ExecuteWorkflow(workflow *exec.Workflow) error {
 	return executeSteps(workflow, workflow.Steps)
 }
 
-func toInputRequest(input config.Input) callbacks.InputRequest {
-	return callbacks.InputRequest{
+func toInputRequest(input config.Input) api.InputRequest {
+	return api.InputRequest{
 		Name:         input.Name,
 		Description:  input.Description,
 		Type:         toInputType(input.Type),
@@ -39,11 +39,11 @@ func toInputRequest(input config.Input) callbacks.InputRequest {
 	}
 }
 
-func toInputType(t string) callbacks.InputType {
+func toInputType(t string) api.InputType {
 	if t == config.INPUT_SELECT {
-		return callbacks.Select
+		return api.Select
 	}
-	return callbacks.Text
+	return api.Text
 }
 
 func executeSteps(workflow *exec.Workflow, steps []config.Step) error {
@@ -67,6 +67,8 @@ func executeStep(workflow *exec.Workflow, step config.Step) error {
 		return executeEditDredgeFile(workflow, step.EditDredgeFile)
 	} else if step.If != nil {
 		return executeIfStep(workflow, step.If)
+	} else if step.Execute != nil {
+		return executeExecuteStep(workflow, step.Execute)
 	}
 	return fmt.Errorf("no execution found for step %v", step.Name)
 }
@@ -106,4 +108,10 @@ func openBrowser(workflow *exec.Workflow, b *config.BrowserStep) error {
 		return err
 	}
 	return workflow.Exec.OpenUrl(url)
+}
+
+func executeExecuteStep(workflow *exec.Workflow, execute *config.ExecuteStep) error {
+	_, err := workflow.Exec.ExecuteResourceCommand(execute.Resource, execute.Command)
+	// TODO Handle the output -> Add to the environment ?
+	return err
 }

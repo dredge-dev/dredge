@@ -91,7 +91,7 @@ func (r *Runtime) getContainerCommand(interactive bool, cmd string) (string, err
 	var volumes []string
 	for _, c := range r.Config.Cache {
 		if !strings.HasPrefix(c, "/") {
-			return "", fmt.Errorf("Invalid cache path (%s): path should start with /", c)
+			return "", fmt.Errorf("invalid cache path (%s): path should start with /", c)
 		}
 		volumes = append(volumes, fmt.Sprintf("-v %s/%s/%s%s:%s", currentDir, dredgeDir, cacheDir, c, c))
 	}
@@ -102,7 +102,7 @@ func (r *Runtime) getContainerCommand(interactive bool, cmd string) (string, err
 		}
 		for _, c := range r.Config.GlobalCache {
 			if !strings.HasPrefix(c, "/") {
-				return "", fmt.Errorf("Invalid cache path (%s): path should start with /", c)
+				return "", fmt.Errorf("invalid cache path (%s): path should start with /", c)
 			}
 			volumes = append(volumes, fmt.Sprintf("-v %s%s:%s", globalCacheDir, c, c))
 		}

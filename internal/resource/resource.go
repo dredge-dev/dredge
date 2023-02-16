@@ -4,54 +4,25 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/dredge-dev/dredge/internal/callbacks"
+	"github.com/dredge-dev/dredge/internal/api"
 	"github.com/dredge-dev/dredge/internal/config"
-	"github.com/dredge-dev/dredge/internal/exec"
 )
 
 type Resource struct {
-	Exec       *exec.DredgeExec
-	Name       string
-	Definition *ResourceDefinition
+	Definition *api.ResourceDefinition
 	Providers  []Provider
 }
 
-type ProviderCreator func(*exec.DredgeExec, config.ResourceProvider) (Provider, error)
-
-type CommandOutput struct {
-	Type   *Type
-	Output interface{}
+type Provider interface {
+	Name() string
+	Init(config map[string]string) error
+	ExecuteCommand(commandName string, callbacks api.Callbacks) (interface{}, error)
 }
 
-func GetResources(e *exec.DredgeExec) ([]string, error) {
-	var resources []string
-	for name, _ := range e.DredgeFile.Resources {
-		_, err := GetResourceDefinition(e, name)
-		if err != nil {
-			return nil, err
-		}
-		resources = append(resources, name)
-	}
-	return resources, nil
-}
-
-func GetResource(e *exec.DredgeExec, create ProviderCreator, resourceName string) (*Resource, error) {
-	rd, err := GetResourceDefinition(e, resourceName)
-	if err != nil {
-		return nil, err
-	}
-
-	r, ok := e.DredgeFile.Resources[resourceName]
-	if !ok {
-		return nil, fmt.Errorf("could not find resource %s", resourceName)
-	}
-	if len(r) == 0 {
-		return nil, fmt.Errorf("no provider specified for this resource")
-	}
-
+func NewResource(rd *api.ResourceDefinition, r config.Resource) (*Resource, error) {
 	var providers []Provider
 	for _, p := range r {
-		provider, err := create(e, p)
+		provider, err := CreateProvider(p)
 		if err != nil {
 			return nil, err
 		}
@@ -59,30 +30,18 @@ func GetResource(e *exec.DredgeExec, create ProviderCreator, resourceName string
 	}
 
 	return &Resource{
-		Exec:       e,
-		Name:       resourceName,
 		Definition: rd,
 		Providers:  providers,
 	}, nil
 }
 
-func (r *Resource) ExecuteCommand(command string, c callbacks.Callbacks) (*CommandOutput, error) {
-	commDef, err := r.Definition.GetCommand(command)
-	if err != nil {
-		return nil, err
-	}
-
-	outputType, err := GetType(r.Exec, commDef.OutputType)
-	if err != nil {
-		return nil, err
-	}
-
+func (r *Resource) ExecuteCommand(command string, outputType *api.Type, c api.Callbacks) (*api.CommandOutput, error) {
 	// TODO If the result is not an array, stop when the first provider returns non-nil value
 	var outputs []interface{}
 	for _, provider := range r.Providers {
-		output, err := provider.ExecuteCommand(command, r.Exec)
+		output, err := provider.ExecuteCommand(command, c)
 		if err != nil {
-			if _, ok := err.(*callbacks.NoResult); !ok {
+			if _, ok := err.(*api.NoResult); !ok {
 				return nil, err
 			}
 		} else {
@@ -95,7 +54,7 @@ func (r *Resource) ExecuteCommand(command string, c callbacks.Callbacks) (*Comma
 		if err != nil {
 			return nil, err
 		}
-		return &CommandOutput{outputType, flat}, nil
+		return &api.CommandOutput{Type: outputType, Output: flat}, nil
 	}
 
 	if len(outputs) == 0 {
@@ -104,7 +63,7 @@ func (r *Resource) ExecuteCommand(command string, c callbacks.Callbacks) (*Comma
 	if len(outputs) > 1 {
 		return nil, fmt.Errorf("1 result expected, more than 1 provider returned")
 	}
-	return &CommandOutput{outputType, outputs[0]}, nil
+	return &api.CommandOutput{Type: outputType, Output: outputs[0]}, nil
 }
 
 func flatten(outputs []interface{}) ([]interface{}, error) {

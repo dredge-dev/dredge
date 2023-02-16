@@ -323,7 +323,7 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 		err = ioutil.WriteFile(importFile, importContent, 0644)
 		assert.Nil(t, err)
 
-		e, err := exec.NewExec(config.SourcePath(dredgeFile), nil)
+		e, err := exec.NewExec(config.SourcePath(dredgeFile), nil, nil)
 		assert.Nil(t, err)
 
 		de, err := e.Import(config.SourcePath(importFile))

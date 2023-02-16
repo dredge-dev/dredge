@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dredge-dev/dredge/internal/callbacks"
+	"github.com/dredge-dev/dredge/internal/api"
 )
 
 type LocalDocProvider struct {
@@ -26,19 +26,19 @@ func (l *LocalDocProvider) Init(config map[string]string) error {
 	return nil
 }
 
-func (l *LocalDocProvider) ExecuteCommand(commandName string, c callbacks.Callbacks) (interface{}, error) {
+func (l *LocalDocProvider) ExecuteCommand(commandName string, c api.Callbacks) (interface{}, error) {
 	if commandName == "search" {
 		return l.Search(c)
 	}
 	return nil, fmt.Errorf("could not find command %s", commandName)
 }
 
-func (l *LocalDocProvider) Search(c callbacks.Callbacks) (interface{}, error) {
-	inputs, err := c.RequestInput([]callbacks.InputRequest{
+func (l *LocalDocProvider) Search(c api.Callbacks) (interface{}, error) {
+	inputs, err := c.RequestInput([]api.InputRequest{
 		{
 			Name:        "text",
 			Description: "Search text",
-			Type:        callbacks.Text,
+			Type:        api.Text,
 		},
 	})
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dredge-dev/dredge/internal/callbacks"
+	"github.com/dredge-dev/dredge/internal/api"
 )
 
 var PORTS_RE = regexp.MustCompile(`0.0.0.0:([0-9]+)->([0-9]+)/tcp`)
@@ -39,7 +39,7 @@ func (l *LocalDockerComposeProvider) Name() string {
 	return "local-docker-compose"
 }
 
-func (l *LocalDockerComposeProvider) ExecuteCommand(commandName string, callbacks callbacks.Callbacks) (interface{}, error) {
+func (l *LocalDockerComposeProvider) ExecuteCommand(commandName string, callbacks api.Callbacks) (interface{}, error) {
 	if commandName == "get" {
 		return l.Get(callbacks)
 	} else if commandName == "describe" {
@@ -50,7 +50,7 @@ func (l *LocalDockerComposeProvider) ExecuteCommand(commandName string, callback
 	return nil, fmt.Errorf("could not find command %s", commandName)
 }
 
-func (l *LocalDockerComposeProvider) Get(callbacks callbacks.Callbacks) ([]map[string]interface{}, error) {
+func (l *LocalDockerComposeProvider) Get(callbacks api.Callbacks) ([]map[string]interface{}, error) {
 	deploy, err := l.get()
 	if err != nil {
 		return nil, err
@@ -77,19 +77,19 @@ func (l *LocalDockerComposeProvider) get() (map[string]interface{}, error) {
 	}, nil
 }
 
-func (l *LocalDockerComposeProvider) Describe(c callbacks.Callbacks) (map[string]interface{}, error) {
-	inputs, err := c.RequestInput([]callbacks.InputRequest{
+func (l *LocalDockerComposeProvider) Describe(c api.Callbacks) (map[string]interface{}, error) {
+	inputs, err := c.RequestInput([]api.InputRequest{
 		{
 			Name:        "name",
 			Description: "Name",
-			Type:        callbacks.Text,
+			Type:        api.Text,
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
 	if inputs["name"] != l.Env {
-		return nil, &callbacks.NoResult{}
+		return nil, &api.NoResult{}
 	}
 	ret, err := l.get()
 	if err != nil {
@@ -119,31 +119,31 @@ func (l *LocalDockerComposeProvider) Describe(c callbacks.Callbacks) (map[string
 	return ret, nil
 }
 
-func (l *LocalDockerComposeProvider) Update(c callbacks.Callbacks) (map[string]interface{}, error) {
-	inputs, err := c.RequestInput([]callbacks.InputRequest{
+func (l *LocalDockerComposeProvider) Update(c api.Callbacks) (map[string]interface{}, error) {
+	inputs, err := c.RequestInput([]api.InputRequest{
 		{
 			Name:        "name",
 			Description: "name",
-			Type:        callbacks.Text,
+			Type:        api.Text,
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
 	if inputs["name"] != l.Env {
-		return nil, &callbacks.NoResult{}
+		return nil, &api.NoResult{}
 	}
 
-	inputs, err = c.RequestInput([]callbacks.InputRequest{
+	inputs, err = c.RequestInput([]api.InputRequest{
 		{
 			Name:        "version",
 			Description: "version",
-			Type:        callbacks.Text,
+			Type:        api.Text,
 		},
 		{
 			Name:        "instances",
 			Description: "instances",
-			Type:        callbacks.Text,
+			Type:        api.Text,
 		},
 	})
 	if err != nil {
@@ -169,20 +169,20 @@ func (l *LocalDockerComposeProvider) Update(c callbacks.Callbacks) (map[string]i
 	return l.get()
 }
 
-func (l *LocalDockerComposeProvider) setInstances(instances int, c callbacks.Callbacks) error {
+func (l *LocalDockerComposeProvider) setInstances(instances int, c api.Callbacks) error {
 	current, err := l.getInstances()
 	if err != nil {
 		return err
 	}
 	if instances == current {
-		c.Log(callbacks.Info, "Restarting docker-compose")
+		c.Log(api.Info, "Restarting docker-compose")
 		return l.restart()
 	}
 	if instances > current {
-		c.Log(callbacks.Info, "Starting docker-compose")
+		c.Log(api.Info, "Starting docker-compose")
 		return l.start()
 	}
-	c.Log(callbacks.Info, "Stopping docker-compose")
+	c.Log(api.Info, "Stopping docker-compose")
 	return l.stop()
 }
 

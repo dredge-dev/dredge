@@ -82,6 +82,7 @@ type Step struct {
 	Browser        *BrowserStep        `yaml:",omitempty"`
 	EditDredgeFile *EditDredgeFileStep `yaml:"edit_dredgefile,omitempty"`
 	If             *IfStep             `yaml:",omitempty"`
+	Execute        *ExecuteStep        `yaml:",omitempty"`
 }
 
 type ShellStep struct {
@@ -116,6 +117,11 @@ type EditDredgeFileStep struct {
 type IfStep struct {
 	Cond  string
 	Steps []Step `yaml:",omitempty"`
+}
+
+type ExecuteStep struct {
+	Resource string
+	Command  string
 }
 
 type Resources map[string]Resource

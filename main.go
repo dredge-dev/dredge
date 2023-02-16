@@ -8,19 +8,22 @@ import (
 	"github.com/dredge-dev/dredge/internal/cmd"
 	"github.com/dredge-dev/dredge/internal/config"
 	"github.com/dredge-dev/dredge/internal/exec"
+	"github.com/dredge-dev/dredge/internal/resource"
 )
 
 const DefaultDredgefilePath = "./" + exec.DefaultDredgefileName
 
 func main() {
-	source := DefaultDredgefilePath
 	var de *exec.DredgeExec
+
+	source := DefaultDredgefilePath
 	c := cmd.CliCallbacks{Reader: os.Stdin, Writer: os.Stdout}
+	rd := resource.GetDefaultResourceDefinitions()
 
 	if _, err := os.Stat(source); errors.Is(err, os.ErrNotExist) {
-		de = exec.EmptyExec(config.SourcePath(source), c)
+		de = exec.EmptyExec(config.SourcePath(source), rd, c)
 	} else {
-		de, err = exec.NewExec(config.SourcePath(source), c)
+		de, err = exec.NewExec(config.SourcePath(source), rd, c)
 		if err != nil {
 			log.Fatalf("Error while reading Dredgefile: %s\n", err)
 		}

@@ -59,12 +59,12 @@ func (e Env) AddInput(input config.Input, reader io.Reader) error {
 			}
 		}
 		if !input.HasValue(value) {
-			return fmt.Errorf("Invalid value (%s) for Input %s", value, input.Name)
+			return fmt.Errorf("invalid value (%s) for Input %s", value, input.Name)
 		}
 		e[input.Name] = value
 		return nil
 	}
-	return fmt.Errorf("Type %s not implemented", input.Type)
+	return fmt.Errorf("type %s not implemented", input.Type)
 }
 
 func (e Env) Clone() Env {

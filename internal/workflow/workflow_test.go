@@ -16,7 +16,7 @@ func TestExecuteShellStep(t *testing.T) {
 	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("drg-%d", rand.Intn(100000)))
 	defer os.Remove(tmpFile)
 
-	e := exec.EmptyExec("", nil)
+	e := exec.EmptyExec("", nil, nil)
 	workflow := &exec.Workflow{
 		Exec:        e,
 		Name:        "workflow",

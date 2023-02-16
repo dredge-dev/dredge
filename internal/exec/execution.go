@@ -3,16 +3,17 @@ package exec
 import (
 	"fmt"
 
-	"github.com/dredge-dev/dredge/internal/callbacks"
+	"github.com/dredge-dev/dredge/internal/api"
 	"github.com/dredge-dev/dredge/internal/config"
 )
 
 type DredgeExec struct {
-	Parent     *DredgeExec
-	Source     config.SourcePath
-	DredgeFile *config.DredgeFile
-	Env        Env
-	callbacks  callbacks.Callbacks
+	Parent              *DredgeExec
+	Source              config.SourcePath
+	DredgeFile          *config.DredgeFile
+	Env                 Env
+	ResourceDefinitions []api.ResourceDefinition
+	callbacks           api.UserInteractionCallbacks
 }
 
 type Bucket struct {
@@ -30,16 +31,17 @@ type Workflow struct {
 	Steps       []config.Step
 }
 
-func EmptyExec(source config.SourcePath, c callbacks.Callbacks) *DredgeExec {
+func EmptyExec(source config.SourcePath, rd []api.ResourceDefinition, c api.UserInteractionCallbacks) *DredgeExec {
 	return &DredgeExec{
-		Source:     source,
-		DredgeFile: &config.DredgeFile{},
-		Env:        NewEnv(),
-		callbacks:  c,
+		Source:              source,
+		DredgeFile:          &config.DredgeFile{},
+		Env:                 NewEnv(),
+		ResourceDefinitions: rd,
+		callbacks:           c,
 	}
 }
 
-func NewExec(source config.SourcePath, c callbacks.Callbacks) (*DredgeExec, error) {
+func NewExec(source config.SourcePath, rd []api.ResourceDefinition, c api.UserInteractionCallbacks) (*DredgeExec, error) {
 	actualSource, dredgeFile, err := ReadDredgeFile(source)
 	if err != nil {
 		return nil, err
@@ -49,10 +51,11 @@ func NewExec(source config.SourcePath, c callbacks.Callbacks) (*DredgeExec, erro
 	env.AddVariables(dredgeFile.Variables)
 
 	return &DredgeExec{
-		Source:     actualSource,
-		DredgeFile: dredgeFile,
-		Env:        env,
-		callbacks:  c,
+		Source:              actualSource,
+		DredgeFile:          dredgeFile,
+		Env:                 env,
+		ResourceDefinitions: rd,
+		callbacks:           c,
 	}, nil
 }
 
@@ -68,11 +71,12 @@ func (exec *DredgeExec) Import(source config.SourcePath) (*DredgeExec, error) {
 	env.AddVariables(imported.Variables)
 
 	return &DredgeExec{
-		Parent:     exec,
-		Source:     actualSource,
-		DredgeFile: imported,
-		Env:        env,
-		callbacks:  exec.callbacks,
+		Parent:              exec,
+		Source:              actualSource,
+		DredgeFile:          imported,
+		Env:                 env,
+		ResourceDefinitions: exec.ResourceDefinitions,
+		callbacks:           exec.callbacks,
 	}, nil
 }
 

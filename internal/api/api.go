@@ -1,9 +1,47 @@
-package callbacks
+package api
 
-type Callbacks interface {
+type ResourceDefinition struct {
+	Name     string
+	Fields   []Field
+	Commands []Command
+}
+
+type Field struct {
+	Name        string
+	Description string
+	Type        string
+}
+
+type Command struct {
+	Name       string
+	Inputs     []string
+	OutputType string
+}
+
+type CommandOutput struct {
+	Type   *Type
+	Output interface{}
+}
+
+type Type struct {
+	Name    string
+	IsArray bool
+	Fields  []Field
+}
+
+type UserInteractionCallbacks interface {
 	Log(level LogLevel, msg string) error
 	RequestInput(inputRequests []InputRequest) (map[string]string, error)
 	OpenUrl(url string) error
+}
+
+type ExecutionCallbacks interface {
+	ExecuteResourceCommand(resource string, command string) (*CommandOutput, error)
+}
+
+type Callbacks interface {
+	UserInteractionCallbacks
+	ExecutionCallbacks
 }
 
 type LogLevel int

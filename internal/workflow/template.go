@@ -55,7 +55,7 @@ func executeTemplate(workflow *exec.Workflow, step *config.TemplateStep) error {
 
 	dest, err := Template(step.Dest, workflow.Exec.Env)
 	if err != nil {
-		return fmt.Errorf("Failed to template Dest: %s", err)
+		return fmt.Errorf("failed to template Dest: %s", err)
 	}
 
 	return insert(step.Insert, text, dest)
@@ -142,7 +142,7 @@ func getTemplateText(workflow *exec.Workflow, step *config.TemplateStep) (string
 func Template(input string, env exec.Env) (string, error) {
 	t, err := template.New("").Option("missingkey=zero").Funcs(TEMPLATE_FUNCTIONS).Parse(string(input))
 	if err != nil {
-		return "", fmt.Errorf("Failed to parse template: %s", err)
+		return "", fmt.Errorf("failed to parse template: %s", err)
 	}
 
 	var buffer bytes.Buffer

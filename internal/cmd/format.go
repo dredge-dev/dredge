@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/dredge-dev/dredge/internal/resource"
+	"github.com/dredge-dev/dredge/internal/api"
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
 )
@@ -14,7 +14,7 @@ func init() {
 	table.DefaultHeaderFormatter = color.New(color.Bold).SprintfFunc()
 }
 
-func format(output *resource.CommandOutput) (string, error) {
+func format(output *api.CommandOutput) (string, error) {
 	if output.Type.Name == "object" {
 		return formatPlain(output.Type.IsArray, output.Output)
 	}
@@ -81,7 +81,7 @@ func formatPlainObject(o interface{}) (string, error) {
 	return out.String(), nil
 }
 
-func formatHeader(t *resource.Type) []interface{} {
+func formatHeader(t *api.Type) []interface{} {
 	var output []interface{}
 	for _, f := range t.Fields {
 		output = append(output, f.Name)
@@ -89,7 +89,7 @@ func formatHeader(t *resource.Type) []interface{} {
 	return output
 }
 
-func formatObject(t *resource.Type, o interface{}) ([]interface{}, error) {
+func formatObject(t *api.Type, o interface{}) ([]interface{}, error) {
 	s := reflect.ValueOf(o)
 	if s.Kind() != reflect.Map {
 		return nil, fmt.Errorf("provider did not return a proper object")

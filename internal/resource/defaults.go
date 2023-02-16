@@ -1,10 +1,12 @@
 package resource
 
-func GetDefaultResourceDefinitions() []ResourceDefinition {
-	return []ResourceDefinition{
+import "github.com/dredge-dev/dredge/internal/api"
+
+func GetDefaultResourceDefinitions() []api.ResourceDefinition {
+	return []api.ResourceDefinition{
 		{
 			Name: "release",
-			Fields: []Field{
+			Fields: []api.Field{
 				{
 					Name:        "name",
 					Description: "Release name",
@@ -21,7 +23,7 @@ func GetDefaultResourceDefinitions() []ResourceDefinition {
 					Type:        "string",
 				},
 			},
-			Commands: []Command{
+			Commands: []api.Command{
 				{
 					Name:       "get",
 					Inputs:     []string{},
@@ -41,7 +43,7 @@ func GetDefaultResourceDefinitions() []ResourceDefinition {
 		},
 		{
 			Name: "issue",
-			Fields: []Field{
+			Fields: []api.Field{
 				{
 					Name:        "name",
 					Description: "Issue name",
@@ -68,7 +70,7 @@ func GetDefaultResourceDefinitions() []ResourceDefinition {
 					Type:        "date",
 				},
 			},
-			Commands: []Command{
+			Commands: []api.Command{
 				{
 					Name:       "get",
 					Inputs:     []string{},
@@ -83,7 +85,7 @@ func GetDefaultResourceDefinitions() []ResourceDefinition {
 		},
 		{
 			Name: "doc",
-			Fields: []Field{
+			Fields: []api.Field{
 				{
 					Name:        "name",
 					Description: "Name",
@@ -105,7 +107,7 @@ func GetDefaultResourceDefinitions() []ResourceDefinition {
 					Type:        "date",
 				},
 			},
-			Commands: []Command{
+			Commands: []api.Command{
 				{
 					Name:       "get",
 					Inputs:     []string{},
@@ -120,7 +122,7 @@ func GetDefaultResourceDefinitions() []ResourceDefinition {
 		},
 		{
 			Name: "deploy",
-			Fields: []Field{
+			Fields: []api.Field{
 				{
 					Name:        "name",
 					Description: "Name",
@@ -142,7 +144,7 @@ func GetDefaultResourceDefinitions() []ResourceDefinition {
 					Type:        "string",
 				},
 			},
-			Commands: []Command{
+			Commands: []api.Command{
 				{
 					Name:       "get",
 					Inputs:     []string{},

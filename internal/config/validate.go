@@ -165,6 +165,13 @@ func (s Step) Validate() error {
 			return err
 		}
 	}
+	if s.Execute != nil {
+		numFields += 1
+		err := s.Execute.Validate()
+		if err != nil {
+			return err
+		}
+	}
 
 	if numFields == 0 {
 		return fmt.Errorf("step %s does not contain an action", s.Name)
@@ -219,6 +226,16 @@ func (i IfStep) Validate() error {
 	}
 	if len(i.Steps) == 0 {
 		return fmt.Errorf("1 or more steps are required for if")
+	}
+	return nil
+}
+
+func (e ExecuteStep) Validate() error {
+	if e.Resource == "" {
+		return fmt.Errorf("resource field is required for execute")
+	}
+	if e.Command == "" {
+		return fmt.Errorf("command field is required for execute")
 	}
 	return nil
 }

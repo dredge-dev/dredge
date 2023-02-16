@@ -14,7 +14,7 @@ const TEST_FILE = "tmp-dredge-if-test"
 
 func getTouchWorkflow(cond string) *exec.Workflow {
 	w := &exec.Workflow{
-		Exec: exec.EmptyExec("", nil),
+		Exec: exec.EmptyExec("", nil, nil),
 		Name: "workflow",
 		Steps: []config.Step{
 			{
@@ -61,12 +61,12 @@ func TestExecuteIfStep(t *testing.T) {
 		},
 		"bad template": {
 			workflow: getTouchWorkflow("{{ .BAD }"),
-			errMsg:   "Failed to parse template: template: :1: unexpected \"}\" in operand",
+			errMsg:   "failed to parse template: template: :1: unexpected \"}\" in operand",
 			exists:   false,
 		},
 		"error in steps": {
 			workflow: &exec.Workflow{
-				Exec: exec.EmptyExec("", nil),
+				Exec: exec.EmptyExec("", nil, nil),
 				Name: "workflow",
 				Steps: []config.Step{
 					{
@@ -79,7 +79,7 @@ func TestExecuteIfStep(t *testing.T) {
 					},
 				},
 			},
-			errMsg: "No execution found for step ",
+			errMsg: "no execution found for step ",
 			exists: false,
 		},
 	}
