@@ -1,6 +1,8 @@
 package exec
 
 import (
+	"fmt"
+
 	"github.com/dredge-dev/dredge/internal/api"
 )
 
@@ -15,7 +17,7 @@ func (e *DredgeExec) RequestInput(inputRequests []api.InputRequest) (map[string]
 
 	for _, inputRequest := range inputRequests {
 		if value, ok := e.Env[inputRequest.Name]; ok {
-			inputs[inputRequest.Name] = value
+			inputs[inputRequest.Name] = fmt.Sprintf("%v", value)
 		} else {
 			remainingRequests = append(remainingRequests, inputRequest)
 		}

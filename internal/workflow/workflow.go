@@ -111,7 +111,9 @@ func openBrowser(workflow *exec.Workflow, b *config.BrowserStep) error {
 }
 
 func executeExecuteStep(workflow *exec.Workflow, execute *config.ExecuteStep) error {
-	_, err := workflow.Exec.ExecuteResourceCommand(execute.Resource, execute.Command)
-	// TODO Handle the output -> Add to the environment ?
+	output, err := workflow.Exec.ExecuteResourceCommand(execute.Resource, execute.Command)
+	if execute.Register != "" {
+		workflow.Exec.Env[execute.Register] = output.Output
+	}
 	return err
 }

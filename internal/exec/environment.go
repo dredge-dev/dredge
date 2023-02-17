@@ -10,7 +10,7 @@ import (
 	"github.com/manifoldco/promptui"
 )
 
-type Env map[string]string
+type Env map[string]interface{}
 
 func NewEnv() Env {
 	return Env{}

@@ -122,6 +122,7 @@ type IfStep struct {
 type ExecuteStep struct {
 	Resource string
 	Command  string
+	Register string `yaml:",omitempty"`
 }
 
 type Resources map[string]Resource
@@ -149,7 +150,7 @@ func NewDredgeFile(buf []byte) (*DredgeFile, error) {
 func WriteDredgeFile(dredgeFile *DredgeFile, filename SourcePath) error {
 	f := string(filename)
 	if !strings.HasPrefix(f, "./") {
-		return fmt.Errorf("Cannot write to non-local file %s", f)
+		return fmt.Errorf("cannot write to non-local file %s", f)
 	}
 
 	file, err := os.OpenFile(f, os.O_CREATE|os.O_WRONLY, 0644)
