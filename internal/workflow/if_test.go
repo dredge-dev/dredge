@@ -6,15 +6,19 @@ import (
 	"testing"
 
 	"github.com/dredge-dev/dredge/internal/config"
-	"github.com/dredge-dev/dredge/internal/exec"
 	"github.com/stretchr/testify/assert"
 )
 
 const TEST_FILE = "tmp-dredge-if-test"
 
-func getTouchWorkflow(cond string) *exec.Workflow {
-	w := &exec.Workflow{
-		Exec: exec.EmptyExec("", nil, nil),
+func getTouchWorkflow(cond string) *Workflow {
+	c := &CallbacksMock{
+		Env: map[string]interface{}{
+			"RUN":  "true",
+			"DONT": "false",
+		},
+	}
+	w := &Workflow{
 		Name: "workflow",
 		Steps: []config.Step{
 			{
@@ -30,9 +34,8 @@ func getTouchWorkflow(cond string) *exec.Workflow {
 				},
 			},
 		},
+		Callbacks: c,
 	}
-	w.Exec.Env["RUN"] = "true"
-	w.Exec.Env["DONT"] = "false"
 	return w
 }
 
@@ -40,7 +43,7 @@ func TestExecuteIfStep(t *testing.T) {
 	defer os.Remove(TEST_FILE)
 
 	tests := map[string]struct {
-		workflow *exec.Workflow
+		workflow *Workflow
 		errMsg   string
 		exists   bool
 	}{
@@ -65,8 +68,7 @@ func TestExecuteIfStep(t *testing.T) {
 			exists:   false,
 		},
 		"error in steps": {
-			workflow: &exec.Workflow{
-				Exec: exec.EmptyExec("", nil, nil),
+			workflow: &Workflow{
 				Name: "workflow",
 				Steps: []config.Step{
 					{
@@ -78,6 +80,7 @@ func TestExecuteIfStep(t *testing.T) {
 						},
 					},
 				},
+				Callbacks: &CallbacksMock{},
 			},
 			errMsg: "no execution found for step ",
 			exists: false,
@@ -86,7 +89,7 @@ func TestExecuteIfStep(t *testing.T) {
 
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
-		err := ExecuteWorkflow(test.workflow)
+		err := test.workflow.Execute()
 		if test.errMsg == "" {
 			assert.Nil(t, err)
 		} else {

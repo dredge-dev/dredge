@@ -5,6 +5,7 @@ import (
 
 	"github.com/dredge-dev/dredge/internal/api"
 	"github.com/dredge-dev/dredge/internal/config"
+	"github.com/dredge-dev/dredge/internal/workflow"
 )
 
 type DredgeExec struct {
@@ -14,21 +15,6 @@ type DredgeExec struct {
 	Env                 Env
 	ResourceDefinitions []api.ResourceDefinition
 	callbacks           api.UserInteractionCallbacks
-}
-
-type Bucket struct {
-	Exec        *DredgeExec
-	Name        string
-	Description string
-	workflows   []config.Workflow
-}
-
-type Workflow struct {
-	Exec        *DredgeExec
-	Name        string
-	Description string
-	Inputs      []config.Input
-	Steps       []config.Step
 }
 
 func EmptyExec(source config.SourcePath, rd []api.ResourceDefinition, c api.UserInteractionCallbacks) *DredgeExec {
@@ -80,12 +66,8 @@ func (exec *DredgeExec) Import(source config.SourcePath) (*DredgeExec, error) {
 	}, nil
 }
 
-func (exec *DredgeExec) ReadSource(source config.SourcePath) ([]byte, error) {
-	return readSource(MergeSources(exec.Source, source))
-}
-
-func (exec *DredgeExec) GetWorkflows() ([]*Workflow, error) {
-	var workflows []*Workflow
+func (exec *DredgeExec) GetWorkflows() ([]*workflow.Workflow, error) {
+	var workflows []*workflow.Workflow
 	for _, w := range exec.DredgeFile.Workflows {
 		workflow, err := exec.resolveWorkflow(w)
 		if err != nil {
@@ -96,7 +78,7 @@ func (exec *DredgeExec) GetWorkflows() ([]*Workflow, error) {
 	return workflows, nil
 }
 
-func (exec *DredgeExec) GetWorkflow(bucketName, workflowName string) (*Workflow, error) {
+func (exec *DredgeExec) GetWorkflow(bucketName, workflowName string) (*workflow.Workflow, error) {
 	if bucketName == "" {
 		for _, w := range exec.DredgeFile.Workflows {
 			if w.Name == workflowName {
@@ -110,7 +92,7 @@ func (exec *DredgeExec) GetWorkflow(bucketName, workflowName string) (*Workflow,
 				if err != nil {
 					return nil, err
 				}
-				for _, w := range bucket.workflows {
+				for _, w := range bucket.Workflows {
 					if w.Name == workflowName {
 						return exec.resolveWorkflow(w)
 					}
@@ -121,8 +103,8 @@ func (exec *DredgeExec) GetWorkflow(bucketName, workflowName string) (*Workflow,
 	return nil, fmt.Errorf("could not find workflow %s/%s", bucketName, workflowName)
 }
 
-func (exec *DredgeExec) GetBuckets() ([]*Bucket, error) {
-	var buckets []*Bucket
+func (exec *DredgeExec) GetBuckets() ([]*workflow.Bucket, error) {
+	var buckets []*workflow.Bucket
 	for _, b := range exec.DredgeFile.Buckets {
 		bucket, err := exec.resolveBucket(b)
 		if err != nil {
@@ -133,7 +115,7 @@ func (exec *DredgeExec) GetBuckets() ([]*Bucket, error) {
 	return buckets, nil
 }
 
-func (exec *DredgeExec) GetBucket(bucketName string) (*Bucket, error) {
+func (exec *DredgeExec) GetBucket(bucketName string) (*workflow.Bucket, error) {
 	for _, b := range exec.DredgeFile.Buckets {
 		if b.Name == bucketName {
 			return exec.resolveBucket(b)
@@ -142,7 +124,7 @@ func (exec *DredgeExec) GetBucket(bucketName string) (*Bucket, error) {
 	return nil, fmt.Errorf("could not find bucket %s", bucketName)
 }
 
-func (exec *DredgeExec) resolveBucket(b config.Bucket) (*Bucket, error) {
+func (exec *DredgeExec) resolveBucket(b config.Bucket) (*workflow.Bucket, error) {
 	if b.Import != nil {
 		de := exec
 		if b.Import.Source != "" {
@@ -162,18 +144,18 @@ func (exec *DredgeExec) resolveBucket(b config.Bucket) (*Bucket, error) {
 		}
 		return bucket, nil
 	}
-	return &Bucket{
-		Exec:        exec,
+	return &workflow.Bucket{
 		Name:        b.Name,
 		Description: b.Description,
-		workflows:   b.Workflows,
+		Workflows:   b.Workflows,
+		Callbacks:   exec,
 	}, nil
 }
 
-func (b *Bucket) GetWorkflows() ([]*Workflow, error) {
-	var workflows []*Workflow
-	for _, w := range b.workflows {
-		workflow, err := b.Exec.resolveWorkflow(w)
+func (exec *DredgeExec) GetWorkflowsInBucket(b *workflow.Bucket) ([]*workflow.Workflow, error) {
+	var workflows []*workflow.Workflow
+	for _, w := range b.Workflows {
+		workflow, err := exec.resolveWorkflow(w)
 		if err != nil {
 			return nil, err
 		}
@@ -182,7 +164,7 @@ func (b *Bucket) GetWorkflows() ([]*Workflow, error) {
 	return workflows, nil
 }
 
-func (exec *DredgeExec) resolveWorkflow(w config.Workflow) (*Workflow, error) {
+func (exec *DredgeExec) resolveWorkflow(w config.Workflow) (*workflow.Workflow, error) {
 	if w.Import != nil {
 		de := exec
 		if w.Import.Source != "" {
@@ -202,11 +184,25 @@ func (exec *DredgeExec) resolveWorkflow(w config.Workflow) (*Workflow, error) {
 		}
 		return workflow, nil
 	}
-	return &Workflow{
-		Exec:        exec,
+	return &workflow.Workflow{
 		Name:        w.Name,
 		Description: w.Description,
 		Inputs:      w.Inputs,
 		Steps:       w.Steps,
+		Runtimes:    exec.DredgeFile.Runtimes, // TODO I think this breaks with imports
+		Callbacks:   exec,
 	}, nil
+}
+
+func (e *DredgeExec) getRootExec() *DredgeExec {
+	exec := e
+	for exec.Parent != nil {
+		exec = exec.Parent
+	}
+	return exec
+}
+
+func (e *DredgeExec) getRootExecAndDredgeFile() (*DredgeExec, *config.DredgeFile) {
+	rootExec := e.getRootExec()
+	return rootExec, rootExec.DredgeFile
 }

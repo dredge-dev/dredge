@@ -6,27 +6,45 @@ import (
 
 	"github.com/dredge-dev/dredge/internal/api"
 	"github.com/dredge-dev/dredge/internal/config"
-	"github.com/dredge-dev/dredge/internal/exec"
 )
 
-func ExecuteWorkflow(workflow *exec.Workflow) error {
+type Bucket struct {
+	Name        string
+	Description string
+	Workflows   []config.Workflow
+	Callbacks   api.Callbacks // TODO Add this to the callers!
+}
+
+type Workflow struct {
+	Name        string
+	Description string
+	Inputs      []config.Input
+	Steps       []config.Step
+	Runtimes    []config.Runtime // TODO Add this to the callers!
+	Callbacks   api.Callbacks
+}
+
+func (workflow *Workflow) Execute() error {
 	// TODO Re-arrange to get all inputs at once
 	for _, input := range workflow.Inputs {
-		skip, err := Template(input.Skip, workflow.Exec.Env)
+		skip, err := workflow.Callbacks.Template(input.Skip)
 		if err != nil {
 			return err
 		}
 		if skip != "true" {
-			result, err := workflow.Exec.RequestInput([]api.InputRequest{
+			result, err := workflow.Callbacks.RequestInput([]api.InputRequest{
 				toInputRequest(input),
 			})
 			if err != nil {
 				return err
 			}
-			workflow.Exec.Env[input.Name] = result[input.Name]
+			// TODO Should this be moved to Exec? Should every RequestIput set the env?
+			if err := workflow.Callbacks.SetEnv(input.Name, result[input.Name]); err != nil {
+				return err
+			}
 		}
 	}
-	return executeSteps(workflow, workflow.Steps)
+	return workflow.executeSteps(workflow.Steps)
 }
 
 func toInputRequest(input config.Input) api.InputRequest {
@@ -46,9 +64,9 @@ func toInputType(t string) api.InputType {
 	return api.Text
 }
 
-func executeSteps(workflow *exec.Workflow, steps []config.Step) error {
+func (workflow *Workflow) executeSteps(steps []config.Step) error {
 	for _, step := range steps {
-		err := executeStep(workflow, step)
+		err := workflow.executeStep(step)
 		if err != nil {
 			return err
 		}
@@ -56,25 +74,25 @@ func executeSteps(workflow *exec.Workflow, steps []config.Step) error {
 	return nil
 }
 
-func executeStep(workflow *exec.Workflow, step config.Step) error {
+func (workflow *Workflow) executeStep(step config.Step) error {
 	if step.Shell != nil {
-		return executeShellStep(workflow, step.Shell)
+		return workflow.executeShellStep(step.Shell)
 	} else if step.Template != nil {
-		return executeTemplate(workflow, step.Template)
+		return workflow.executeTemplate(step.Template)
 	} else if step.Browser != nil {
-		return openBrowser(workflow, step.Browser)
+		return workflow.openBrowser(step.Browser)
 	} else if step.EditDredgeFile != nil {
-		return executeEditDredgeFile(workflow, step.EditDredgeFile)
+		return workflow.executeEditDredgeFile(step.EditDredgeFile)
 	} else if step.If != nil {
-		return executeIfStep(workflow, step.If)
+		return workflow.executeIfStep(step.If)
 	} else if step.Execute != nil {
-		return executeExecuteStep(workflow, step.Execute)
+		return workflow.executeExecuteStep(step.Execute)
 	}
 	return fmt.Errorf("no execution found for step %v", step.Name)
 }
 
-func executeShellStep(workflow *exec.Workflow, shell *config.ShellStep) error {
-	runtime, err := GetRuntime(workflow.Exec.Env, workflow.Exec.DredgeFile.Runtimes, shell.Runtime)
+func (workflow *Workflow) executeShellStep(shell *config.ShellStep) error {
+	runtime, err := workflow.GetRuntime(shell.Runtime)
 	if err != nil {
 		return err
 	}
@@ -94,26 +112,26 @@ func executeShellStep(workflow *exec.Workflow, shell *config.ShellStep) error {
 		return err
 	}
 	if shell.StdOut != "" && stdout != nil {
-		workflow.Exec.Env[shell.StdOut] = stdout.String()
+		workflow.Callbacks.SetEnv(shell.StdOut, stdout.String())
 	}
 	if shell.StdErr != "" && stderr != nil {
-		workflow.Exec.Env[shell.StdErr] = stderr.String()
+		workflow.Callbacks.SetEnv(shell.StdErr, stderr.String())
 	}
 	return nil
 }
 
-func openBrowser(workflow *exec.Workflow, b *config.BrowserStep) error {
-	url, err := Template(b.Url, workflow.Exec.Env)
+func (workflow *Workflow) openBrowser(b *config.BrowserStep) error {
+	url, err := workflow.Callbacks.Template(b.Url)
 	if err != nil {
 		return err
 	}
-	return workflow.Exec.OpenUrl(url)
+	return workflow.Callbacks.OpenUrl(url)
 }
 
-func executeExecuteStep(workflow *exec.Workflow, execute *config.ExecuteStep) error {
-	output, err := workflow.Exec.ExecuteResourceCommand(execute.Resource, execute.Command)
+func (workflow *Workflow) executeExecuteStep(execute *config.ExecuteStep) error {
+	output, err := workflow.Callbacks.ExecuteResourceCommand(execute.Resource, execute.Command)
 	if execute.Register != "" {
-		workflow.Exec.Env[execute.Register] = output.Output
+		workflow.Callbacks.SetEnv(execute.Register, output.Output)
 	}
 	return err
 }

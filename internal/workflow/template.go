@@ -1,59 +1,22 @@
 package workflow
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
-	"text/template"
-	"time"
 
 	"github.com/dredge-dev/dredge/internal/config"
-	"github.com/dredge-dev/dredge/internal/exec"
 )
 
-var TEMPLATE_FUNCTIONS = template.FuncMap{
-	"replace": func(s, old, new string) string {
-		return strings.Replace(s, old, new, -1)
-	},
-	"date": func(format string) string {
-		return time.Now().Format(format)
-	},
-	"join": func(s1, s2, sep string) string {
-		if len(s1) == 0 {
-			return s2
-		}
-		if len(s2) == 0 {
-			return s1
-		}
-		return s1 + sep + s2
-	},
-	"trimSpace": func(s string) string {
-		return strings.TrimSpace(s)
-	},
-	"isTrue":  isTrue,
-	"isFalse": isFalse,
-}
-
-func isTrue(s string) bool {
-	l := strings.ToLower(s)
-	return l == "1" || l == "t" || l == "true" || l == "yes"
-}
-
-func isFalse(s string) bool {
-	l := strings.ToLower(s)
-	return l == "0" || l == "f" || l == "false" || l == "no"
-}
-
-func executeTemplate(workflow *exec.Workflow, step *config.TemplateStep) error {
+func (workflow *Workflow) executeTemplate(step *config.TemplateStep) error {
 	text, err := getTemplateText(workflow, step)
 	if err != nil {
 		return err
 	}
 
-	dest, err := Template(step.Dest, workflow.Exec.Env)
+	dest, err := workflow.Callbacks.Template(step.Dest)
 	if err != nil {
 		return fmt.Errorf("failed to template Dest: %s", err)
 	}
@@ -126,29 +89,18 @@ func getExtension(dest string) string {
 	return parts[len(parts)-1]
 }
 
-func getTemplateText(workflow *exec.Workflow, step *config.TemplateStep) (string, error) {
+func getTemplateText(workflow *Workflow, step *config.TemplateStep) (string, error) {
 	input := step.Input
 	if step.Source != "" {
-		buf, err := workflow.Exec.ReadSource(step.Source)
+		path, err := workflow.Callbacks.RelativePathFromDredgefile((string)(step.Source))
+		if err != nil {
+			return "", err
+		}
+		buf, err := ioutil.ReadFile(path)
 		if err != nil {
 			return "", err
 		}
 		input = string(buf)
 	}
-
-	return Template(input, workflow.Exec.Env)
-}
-
-func Template(input string, env exec.Env) (string, error) {
-	t, err := template.New("").Option("missingkey=zero").Funcs(TEMPLATE_FUNCTIONS).Parse(string(input))
-	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %s", err)
-	}
-
-	var buffer bytes.Buffer
-	if err := t.Execute(&buffer, env); err != nil {
-		return "", err
-	}
-
-	return buffer.String(), nil
+	return workflow.Callbacks.Template(input)
 }

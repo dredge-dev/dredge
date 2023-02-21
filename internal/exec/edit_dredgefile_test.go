@@ -1,4 +1,4 @@
-package workflow
+package exec
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/dredge-dev/dredge/internal/config"
-	"github.com/dredge-dev/dredge/internal/exec"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
@@ -173,26 +172,7 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 					},
 				},
 			},
-			content: config.DredgeFile{
-				Workflows: []config.Workflow{
-					{
-						Name: "w1",
-						Steps: []config.Step{
-							{
-								Browser: &config.BrowserStep{
-									Url: "https://www.dredge.dev",
-								},
-							},
-						},
-					},
-				},
-				Buckets: []config.Bucket{
-					{
-						Name:      "b1",
-						Workflows: []config.Workflow{},
-					},
-				},
-			},
+			errMsg: "workflow w1 already present",
 		},
 		"add existing bucket": {
 			df: config.DredgeFile{
@@ -221,26 +201,7 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 					},
 				},
 			},
-			content: config.DredgeFile{
-				Workflows: []config.Workflow{
-					{
-						Name: "w1",
-						Steps: []config.Step{
-							{
-								Browser: &config.BrowserStep{
-									Url: "https://www.dredge.dev",
-								},
-							},
-						},
-					},
-				},
-				Buckets: []config.Bucket{
-					{
-						Name:      "b1",
-						Workflows: []config.Workflow{},
-					},
-				},
-			},
+			errMsg: "bucket b1 already present",
 		},
 		"add invalid workflow": {
 			df: config.DredgeFile{
@@ -323,7 +284,7 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 		err = ioutil.WriteFile(importFile, importContent, 0644)
 		assert.Nil(t, err)
 
-		e, err := exec.NewExec(config.SourcePath(dredgeFile), nil, nil)
+		e, err := NewExec(config.SourcePath(dredgeFile), nil, nil)
 		assert.Nil(t, err)
 
 		de, err := e.Import(config.SourcePath(importFile))
@@ -332,11 +293,11 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 		w, err := de.GetWorkflow("", "add-workflow")
 		assert.Nil(t, err)
 
-		err = ExecuteWorkflow(w)
+		err = w.Execute()
 		if test.errMsg == "" {
 			assert.Nil(t, err)
 
-			_, df, err := exec.ReadDredgeFile(config.SourcePath(dredgeFile))
+			_, df, err := ReadDredgeFile(config.SourcePath(dredgeFile))
 			assert.Nil(t, err)
 
 			content, err := yaml.Marshal(df)
@@ -356,22 +317,22 @@ func TestExecuteEditDredgeFile(t *testing.T) {
 }
 
 func TestGetRootExec(t *testing.T) {
-	root := &exec.DredgeExec{}
+	root := &DredgeExec{}
 
 	tests := map[string]struct {
-		e *exec.DredgeExec
+		e *DredgeExec
 	}{
 		"root": {
 			e: root,
 		},
 		"1 level": {
-			e: &exec.DredgeExec{
+			e: &DredgeExec{
 				Parent: root,
 			},
 		},
 		"2 levels": {
-			e: &exec.DredgeExec{
-				Parent: &exec.DredgeExec{
+			e: &DredgeExec{
+				Parent: &DredgeExec{
 					Parent: root,
 				},
 			},
@@ -380,6 +341,6 @@ func TestGetRootExec(t *testing.T) {
 
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
-		assert.Equal(t, root, getRootExec(test.e))
+		assert.Equal(t, root, test.e.getRootExec())
 	}
 }

@@ -5,29 +5,36 @@ import (
 	"fmt"
 	"io"
 	"os"
-	osExec "os/exec"
+	"os/exec"
 	"sort"
 	"strings"
 
 	"github.com/dredge-dev/dredge/internal/config"
-	"github.com/dredge-dev/dredge/internal/exec"
 )
 
 const dredgeDir = ".dredge"
 const cacheDir = "cache"
 
+type Templater func(input string) (string, error)
+
 type Runtime struct {
-	Env    exec.Env
-	Config config.Runtime
+	Config    config.Runtime
+	Templater Templater
 }
 
-func GetRuntime(env exec.Env, runtimes []config.Runtime, name string) (*Runtime, error) {
+func (workflow *Workflow) GetRuntime(name string) (*Runtime, error) {
 	if name == "" {
-		return &Runtime{env, config.Runtime{Type: "native"}}, nil
+		return &Runtime{
+			Config:    config.Runtime{Type: "native"},
+			Templater: workflow.Callbacks.Template,
+		}, nil
 	}
-	for _, r := range runtimes {
+	for _, r := range workflow.Runtimes {
 		if name == r.Name {
-			return &Runtime{env, r}, nil
+			return &Runtime{
+				Config:    r,
+				Templater: workflow.Callbacks.Template,
+			}, nil
 		}
 	}
 	return nil, fmt.Errorf("Runtime %s is not defined", name)
@@ -38,7 +45,7 @@ func (r *Runtime) Execute(interactive bool, command string, stdin io.Reader, std
 	if err != nil {
 		return err
 	}
-	osCmd := osExec.Command("/bin/bash", "-c", cmd)
+	osCmd := exec.Command("/bin/bash", "-c", cmd)
 	osCmd.Env = os.Environ()
 	if stdin != nil {
 		osCmd.Stdin = stdin
@@ -71,7 +78,7 @@ func (r *Runtime) GetCommand(interactive bool, cmd string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return Template(command, r.Env)
+	return r.Templater(command)
 }
 
 func (r *Runtime) getContainerCommand(interactive bool, cmd string) (string, error) {
@@ -83,8 +90,14 @@ func (r *Runtime) getContainerCommand(interactive bool, cmd string) (string, err
 	}
 
 	var envVars []string
-	for variable, value := range r.Env {
-		envVars = append(envVars, fmt.Sprintf("-e %s=%s", variable, value))
+	for variable, value := range r.Config.EnvVars {
+		templated, err := r.Templater(value)
+		if err != nil {
+			return "", err
+		}
+		if templated != "" {
+			envVars = append(envVars, fmt.Sprintf("-e %s=%s", variable, templated))
+		}
 	}
 	sort.Strings(envVars)
 
@@ -111,7 +124,7 @@ func (r *Runtime) getContainerCommand(interactive bool, cmd string) (string, err
 
 	var ports []string
 	for _, p := range r.Config.Ports {
-		portsString, err := Template(p, r.Env)
+		portsString, err := r.Templater(p)
 		if err != nil {
 			return "", err
 		}

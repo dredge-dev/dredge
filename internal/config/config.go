@@ -33,11 +33,12 @@ type SourcePath string
 type Runtime struct {
 	Name        string
 	Type        string
-	Image       string   `yaml:",omitempty"`
-	Home        string   `yaml:",omitempty"`
-	Cache       []string `yaml:",omitempty"`
-	GlobalCache []string `yaml:"global_cache,omitempty"`
-	Ports       []string `yaml:",omitempty"`
+	Image       string            `yaml:",omitempty"`
+	Home        string            `yaml:",omitempty"`
+	Cache       []string          `yaml:",omitempty"`
+	GlobalCache []string          `yaml:"global_cache,omitempty"`
+	Ports       []string          `yaml:",omitempty"`
+	EnvVars     map[string]string `yaml:",omitempty"`
 }
 
 type Bucket struct {

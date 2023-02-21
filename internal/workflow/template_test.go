@@ -7,10 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/dredge-dev/dredge/internal/config"
-	"github.com/dredge-dev/dredge/internal/exec"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,8 +20,7 @@ func TestExecuteTemplate(t *testing.T) {
 		Input: "Hello {{ .test }}",
 		Dest:  tmpFile,
 	}
-	workflow := &exec.Workflow{
-		Exec:        exec.EmptyExec("", nil, nil),
+	workflow := &Workflow{
 		Name:        "workflow",
 		Description: "My workflow",
 		Inputs: []config.Input{
@@ -37,10 +34,14 @@ func TestExecuteTemplate(t *testing.T) {
 				Template: &step,
 			},
 		},
+		Callbacks: &CallbacksMock{
+			Env: map[string]interface{}{
+				"test": "value",
+			},
+		},
 	}
 
-	os.Setenv("test", "value")
-	err := ExecuteWorkflow(workflow)
+	err := workflow.Execute()
 	assert.Nil(t, err)
 
 	content, err := ioutil.ReadFile(tmpFile)
@@ -57,8 +58,7 @@ func TestExecuteTemplateFromSource(t *testing.T) {
 	defer os.Remove(templateFile)
 	assert.Nil(t, err)
 
-	workflow := &exec.Workflow{
-		Exec:        exec.EmptyExec("./Dredgefile", nil, nil),
+	workflow := &Workflow{
 		Name:        "workflow",
 		Description: "My workflow",
 		Inputs: []config.Input{
@@ -75,110 +75,19 @@ func TestExecuteTemplateFromSource(t *testing.T) {
 				},
 			},
 		},
+		Callbacks: &CallbacksMock{
+			Env: map[string]interface{}{
+				"test": "value",
+			},
+		},
 	}
 
-	os.Setenv("test", "value")
-	err = ExecuteWorkflow(workflow)
+	err = workflow.Execute()
 	assert.Nil(t, err)
 
 	content, err := ioutil.ReadFile(dstFile)
 	assert.Nil(t, err)
 	assert.Equal(t, "Hello value", string(content))
-}
-
-func TestTemplate(t *testing.T) {
-	tests := map[string]struct {
-		input  string
-		env    exec.Env
-		output string
-		err    error
-	}{
-		"no replaces": {
-			input:  "test",
-			env:    exec.NewEnv(),
-			output: "test",
-			err:    nil,
-		},
-		"variable": {
-			input:  "hello {{ .test }}",
-			env:    exec.Env{"test": "world"},
-			output: "hello world",
-			err:    nil,
-		},
-		"replace function": {
-			input:  "{{replace .test \" \" \"-\" }}",
-			env:    exec.Env{"test": "hello world"},
-			output: "hello-world",
-			err:    nil,
-		},
-		"date function": {
-			input:  "{{ date \"2006-01-02\" }}",
-			env:    exec.Env{},
-			output: time.Now().Format("2006-01-02"),
-			err:    nil,
-		},
-		"join with empty": {
-			input:  "{{ join .arr .new \",\" }}",
-			env:    exec.Env{"new": "5000", "arr": ""},
-			output: "5000",
-			err:    nil,
-		},
-		"join empty": {
-			input:  "{{ join .arr .new \",\" }}",
-			env:    exec.Env{"new": "", "arr": "5000"},
-			output: "5000",
-			err:    nil,
-		},
-		"join with one": {
-			input:  "{{ join .arr .new \",\" }}",
-			env:    exec.Env{"new": "5000", "arr": "8000"},
-			output: "8000,5000",
-			err:    nil,
-		},
-		"join to list": {
-			input:  "{{ join .arr .new \",\" }}",
-			env:    exec.Env{"new": "5000", "arr": "80,1234"},
-			output: "80,1234,5000",
-			err:    nil,
-		},
-		"isTrue true": {
-			input:  "{{ if isTrue .val }}Hello{{ end }} {{ if isTrue .val2 }}world{{ end }}",
-			env:    exec.Env{"val": "true", "val2": "yes"},
-			output: "Hello world",
-			err:    nil,
-		},
-		"isTrue false": {
-			input:  "{{ if isTrue .val }}Hello{{ end }} {{ if isTrue .val2 }}world{{ end }}",
-			env:    exec.Env{"val": "false", "val2": "no"},
-			output: " ",
-			err:    nil,
-		},
-		"isFalse true": {
-			input:  "{{ if isFalse .val }}Hello{{ end }} {{ if isFalse .val2 }}world{{ end }}",
-			env:    exec.Env{"val": "false", "val2": "no"},
-			output: "Hello world",
-			err:    nil,
-		},
-		"isFalse false": {
-			input:  "{{ if isFalse .val }}Hello{{ end }} {{ if isFalse .val2 }}world{{ end }}",
-			env:    exec.Env{"val": "true", "val2": "yes"},
-			output: " ",
-			err:    nil,
-		},
-		"trimSpace": {
-			input:  "{{ trimSpace \" hello \" }}",
-			env:    exec.NewEnv(),
-			output: "hello",
-			err:    nil,
-		},
-	}
-
-	for testName, test := range tests {
-		t.Logf("Running test case %s", testName)
-		output, err := Template(test.input, test.env)
-		assert.Equal(t, test.output, output)
-		assert.Equal(t, test.err, err)
-	}
 }
 
 func TestInsert(t *testing.T) {

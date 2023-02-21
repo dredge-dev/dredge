@@ -1,5 +1,7 @@
 package api
 
+import "github.com/dredge-dev/dredge/internal/config"
+
 type ResourceDefinition struct {
 	Name     string
 	Fields   []Field
@@ -37,11 +39,21 @@ type UserInteractionCallbacks interface {
 
 type ExecutionCallbacks interface {
 	ExecuteResourceCommand(resource string, command string) (*CommandOutput, error)
+	SetEnv(name string, value interface{}) error
+	Template(input string) (string, error)
+}
+
+type DredgefileCallbacks interface {
+	AddVariablesToDredgefile(variable map[string]string) error
+	AddWorkflowToDredgefile(workflow config.Workflow) error
+	AddBucketToDredgefile(bucket config.Bucket) error
+	RelativePathFromDredgefile(path string) (string, error)
 }
 
 type Callbacks interface {
 	UserInteractionCallbacks
 	ExecutionCallbacks
+	DredgefileCallbacks
 }
 
 type LogLevel int

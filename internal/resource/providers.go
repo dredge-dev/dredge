@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dredge-dev/dredge/internal/config"
-	"github.com/dredge-dev/dredge/internal/resource/providers"
+	"github.com/dredge-dev/dredge/internal/providers"
 )
 
 func CreateProvider(conf config.ResourceProvider) (Provider, error) {
