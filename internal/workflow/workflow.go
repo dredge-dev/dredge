@@ -162,7 +162,11 @@ func (workflow *Workflow) executeLogStep(log *config.LogStep) error {
 	if err != nil {
 		return err
 	}
-	return workflow.Callbacks.Log(level, log.Message)
+	msg, err := workflow.Callbacks.Template(log.Message)
+	if err != nil {
+		return err
+	}
+	return workflow.Callbacks.Log(level, msg)
 }
 
 func toLogLevel(level string) (api.LogLevel, error) {
@@ -177,5 +181,9 @@ func toLogLevel(level string) (api.LogLevel, error) {
 }
 
 func (workflow *Workflow) executeConfirmStep(confirm *config.ConfirmStep) error {
-	return workflow.Callbacks.Confirm(confirm.Message)
+	msg, err := workflow.Callbacks.Template(confirm.Message)
+	if err != nil {
+		return err
+	}
+	return workflow.Callbacks.Confirm(msg)
 }

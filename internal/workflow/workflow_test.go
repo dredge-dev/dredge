@@ -197,6 +197,33 @@ func TestExecuteSetStep(t *testing.T) {
 	assert.Equal(t, "the second item", c.Env["second"])
 }
 
+func TestExecuteSetStepTemplated(t *testing.T) {
+	c := &CallbacksMock{}
+
+	workflow := &Workflow{
+		Name:        "workflow",
+		Description: "perform work",
+		Steps: []config.Step{
+			{
+				Set: &config.SetStep{
+					"first": "hello",
+				},
+			},
+			{
+				Set: &config.SetStep{
+					"second": "{{ .first }} world",
+				},
+			},
+		},
+		Callbacks: c,
+	}
+
+	err := workflow.Execute()
+	assert.Nil(t, err)
+	assert.Equal(t, "hello", c.Env["first"])
+	assert.Equal(t, "hello world", c.Env["second"])
+}
+
 func TestExecuteLogStep(t *testing.T) {
 	message := ""
 	c := &CallbacksMock{
@@ -226,6 +253,40 @@ func TestExecuteLogStep(t *testing.T) {
 	assert.Equal(t, "your message here", message)
 }
 
+func TestExecuteLogStepTemplated(t *testing.T) {
+	message := ""
+	c := &CallbacksMock{
+		MLog: func(level api.LogLevel, msg string) error {
+			assert.Equal(t, api.Info, level)
+			message = msg
+			return nil
+		},
+	}
+
+	workflow := &Workflow{
+		Name:        "workflow",
+		Description: "perform work",
+		Steps: []config.Step{
+			{
+				Set: &config.SetStep{
+					"var": "there",
+				},
+			},
+			{
+				Log: &config.LogStep{
+					Level:   api.Info.String(),
+					Message: "your message {{ .var }}",
+				},
+			},
+		},
+		Callbacks: c,
+	}
+
+	err := workflow.Execute()
+	assert.Nil(t, err)
+	assert.Equal(t, "your message there", message)
+}
+
 func TestExecuteConfirmStep(t *testing.T) {
 	message := ""
 	c := &CallbacksMock{
@@ -251,4 +312,36 @@ func TestExecuteConfirmStep(t *testing.T) {
 	err := workflow.Execute()
 	assert.Nil(t, err)
 	assert.Equal(t, "your message here", message)
+}
+
+func TestExecuteConfirmStepTemplated(t *testing.T) {
+	message := ""
+	c := &CallbacksMock{
+		MConfirm: func(msg string) error {
+			message = msg
+			return nil
+		},
+	}
+
+	workflow := &Workflow{
+		Name:        "workflow",
+		Description: "perform work",
+		Steps: []config.Step{
+			{
+				Set: &config.SetStep{
+					"var": "to be confirmed",
+				},
+			},
+			{
+				Confirm: &config.ConfirmStep{
+					Message: "your message {{ .var }}",
+				},
+			},
+		},
+		Callbacks: c,
+	}
+
+	err := workflow.Execute()
+	assert.Nil(t, err)
+	assert.Equal(t, "your message to be confirmed", message)
 }
