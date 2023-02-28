@@ -3,6 +3,7 @@ package workflow
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/dredge-dev/dredge/internal/api"
 	"github.com/dredge-dev/dredge/internal/config"
@@ -12,7 +13,7 @@ type Bucket struct {
 	Name        string
 	Description string
 	Workflows   []config.Workflow
-	Callbacks   api.Callbacks // TODO Add this to the callers!
+	Callbacks   api.Callbacks
 }
 
 type Workflow struct {
@@ -20,7 +21,7 @@ type Workflow struct {
 	Description string
 	Inputs      []config.Input
 	Steps       []config.Step
-	Runtimes    []config.Runtime // TODO Add this to the callers!
+	Runtimes    []config.Runtime
 	Callbacks   api.Callbacks
 }
 
@@ -87,6 +88,12 @@ func (workflow *Workflow) executeStep(step config.Step) error {
 		return workflow.executeIfStep(step.If)
 	} else if step.Execute != nil {
 		return workflow.executeExecuteStep(step.Execute)
+	} else if step.Set != nil {
+		return workflow.executeSetStep(step.Set)
+	} else if step.Log != nil {
+		return workflow.executeLogStep(step.Log)
+	} else if step.Confirm != nil {
+		return workflow.executeConfirmStep(step.Confirm)
 	}
 	return fmt.Errorf("no execution found for step %v", step.Name)
 }
@@ -134,4 +141,41 @@ func (workflow *Workflow) executeExecuteStep(execute *config.ExecuteStep) error 
 		workflow.Callbacks.SetEnv(execute.Register, output.Output)
 	}
 	return err
+}
+
+func (workflow *Workflow) executeSetStep(set *config.SetStep) error {
+	for key, value := range *set {
+		templated, err := workflow.Callbacks.Template(value)
+		if err != nil {
+			return err
+		}
+		err = workflow.Callbacks.SetEnv(key, templated)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (workflow *Workflow) executeLogStep(log *config.LogStep) error {
+	level, err := toLogLevel(log.Level)
+	if err != nil {
+		return err
+	}
+	return workflow.Callbacks.Log(level, log.Message)
+}
+
+func toLogLevel(level string) (api.LogLevel, error) {
+	levelLower := strings.ToLower(level)
+	levels := []api.LogLevel{api.Fatal, api.Error, api.Warn, api.Info, api.Debug, api.Trace}
+	for _, level := range levels {
+		if levelLower == strings.ToLower(level.String()) {
+			return level, nil
+		}
+	}
+	return 0, fmt.Errorf("unknown log level: %s", level)
+}
+
+func (workflow *Workflow) executeConfirmStep(confirm *config.ConfirmStep) error {
+	return workflow.Callbacks.Confirm(confirm.Message)
 }

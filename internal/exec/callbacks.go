@@ -46,6 +46,10 @@ func (e *DredgeExec) OpenUrl(url string) error {
 	return e.callbacks.OpenUrl(url)
 }
 
+func (e *DredgeExec) Confirm(msg string) error {
+	return e.callbacks.Confirm(msg)
+}
+
 func (e *DredgeExec) ExecuteResourceCommand(resourceName string, commandName string) (*api.CommandOutput, error) {
 	r, err := e.GetResource(resourceName)
 	if err != nil {

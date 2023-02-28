@@ -172,7 +172,27 @@ func (s Step) Validate() error {
 			return err
 		}
 	}
-
+	if s.Set != nil {
+		numFields += 1
+		err := s.Set.Validate()
+		if err != nil {
+			return err
+		}
+	}
+	if s.Log != nil {
+		numFields += 1
+		err := s.Log.Validate()
+		if err != nil {
+			return err
+		}
+	}
+	if s.Confirm != nil {
+		numFields += 1
+		err := s.Confirm.Validate()
+		if err != nil {
+			return err
+		}
+	}
 	if numFields == 0 {
 		return fmt.Errorf("step %s does not contain an action", s.Name)
 	} else if numFields == 1 {
@@ -236,6 +256,35 @@ func (e ExecuteStep) Validate() error {
 	}
 	if e.Command == "" {
 		return fmt.Errorf("command field is required for execute")
+	}
+	return nil
+}
+
+func (s SetStep) Validate() error {
+	if len(s) == 0 {
+		return fmt.Errorf("at least 1 key/value pair is required for set")
+	}
+	return nil
+}
+
+func (l LogStep) Validate() error {
+	if l.Level != LOG_FATAL &&
+		l.Level != LOG_ERROR &&
+		l.Level != LOG_WARN &&
+		l.Level != LOG_INFO &&
+		l.Level != LOG_DEBUG &&
+		l.Level != LOG_TRACE {
+		return fmt.Errorf("unknown level in log: %s (valid options are: %s, %s, %s, %s, %s, %s)", l.Level, LOG_FATAL, LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, LOG_TRACE)
+	}
+	if l.Message == "" {
+		return fmt.Errorf("message field is required for log")
+	}
+	return nil
+}
+
+func (c ConfirmStep) Validate() error {
+	if c.Message == "" {
+		return fmt.Errorf("message field is required for confirm")
 	}
 	return nil
 }

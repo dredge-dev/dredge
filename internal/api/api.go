@@ -35,6 +35,7 @@ type UserInteractionCallbacks interface {
 	Log(level LogLevel, msg string) error
 	RequestInput(inputRequests []InputRequest) (map[string]string, error)
 	OpenUrl(url string) error
+	Confirm(msg string) error
 }
 
 type ExecutionCallbacks interface {

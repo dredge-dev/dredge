@@ -18,6 +18,7 @@ type CallbacksMock struct {
 	MLog                        func(level api.LogLevel, msg string) error
 	MRequestInput               func(inputRequests []api.InputRequest) (map[string]string, error)
 	MOpenUrl                    func(url string) error
+	MConfirm                    func(msg string) error
 	MExecuteResourceCommand     func(resource string, command string) (*api.CommandOutput, error)
 	MSetEnv                     func(name string, value interface{}) error
 	MTemplate                   func(input string) (string, error)
@@ -49,6 +50,12 @@ func (c *CallbacksMock) OpenUrl(url string) error {
 		return c.MOpenUrl(url)
 	}
 	return fmt.Errorf("OpenUrl not mocked")
+}
+func (c *CallbacksMock) Confirm(msg string) error {
+	if c.MConfirm != nil {
+		return c.MConfirm(msg)
+	}
+	return fmt.Errorf("Confirm not mocked")
 }
 func (c *CallbacksMock) ExecuteResourceCommand(resource string, command string) (*api.CommandOutput, error) {
 	if c.MExecuteResourceCommand != nil {
@@ -133,4 +140,115 @@ func TestExecuteShellStep(t *testing.T) {
 
 	assert.Equal(t, "hello\n", c.Env["OUTPUT"])
 	assert.Equal(t, "world\n", c.Env["ERR"])
+}
+
+func TestExecuteExecuteStep(t *testing.T) {
+	c := &CallbacksMock{
+		MExecuteResourceCommand: func(resource, command string) (*api.CommandOutput, error) {
+			return &api.CommandOutput{
+				Type: &api.Type{
+					Name: "string",
+				},
+				Output: fmt.Sprintf("%s/%s output", resource, command),
+			}, nil
+		},
+	}
+
+	workflow := &Workflow{
+		Name:        "workflow",
+		Description: "perform work",
+		Steps: []config.Step{
+			{
+				Execute: &config.ExecuteStep{
+					Resource: "release",
+					Command:  "get",
+					Register: "output",
+				},
+			},
+		},
+		Callbacks: c,
+	}
+
+	err := workflow.Execute()
+	assert.Nil(t, err)
+	assert.Equal(t, "release/get output", c.Env["output"])
+}
+
+func TestExecuteSetStep(t *testing.T) {
+	c := &CallbacksMock{}
+
+	workflow := &Workflow{
+		Name:        "workflow",
+		Description: "perform work",
+		Steps: []config.Step{
+			{
+				Set: &config.SetStep{
+					"first":  "the first item",
+					"second": "the second item",
+				},
+			},
+		},
+		Callbacks: c,
+	}
+
+	err := workflow.Execute()
+	assert.Nil(t, err)
+	assert.Equal(t, "the first item", c.Env["first"])
+	assert.Equal(t, "the second item", c.Env["second"])
+}
+
+func TestExecuteLogStep(t *testing.T) {
+	message := ""
+	c := &CallbacksMock{
+		MLog: func(level api.LogLevel, msg string) error {
+			assert.Equal(t, api.Info, level)
+			message = msg
+			return nil
+		},
+	}
+
+	workflow := &Workflow{
+		Name:        "workflow",
+		Description: "perform work",
+		Steps: []config.Step{
+			{
+				Log: &config.LogStep{
+					Level:   api.Info.String(),
+					Message: "your message here",
+				},
+			},
+		},
+		Callbacks: c,
+	}
+
+	err := workflow.Execute()
+	assert.Nil(t, err)
+	assert.Equal(t, "your message here", message)
+}
+
+func TestExecuteConfirmStep(t *testing.T) {
+	message := ""
+	c := &CallbacksMock{
+		MConfirm: func(msg string) error {
+			message = msg
+			return nil
+		},
+	}
+
+	workflow := &Workflow{
+		Name:        "workflow",
+		Description: "perform work",
+		Steps: []config.Step{
+			{
+				Confirm: &config.ConfirmStep{
+					Message: "your message here",
+				},
+			},
+		},
+		Callbacks: c,
+	}
+
+	err := workflow.Execute()
+	assert.Nil(t, err)
+	assert.Equal(t, "your message here", message)
 }

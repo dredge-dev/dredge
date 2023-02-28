@@ -61,3 +61,18 @@ func (c CliCallbacks) readInput(ir api.InputRequest) (string, error) {
 func (c CliCallbacks) OpenUrl(url string) error {
 	return browser.OpenURL(url)
 }
+
+func (c CliCallbacks) Confirm(msg string) error {
+	prompt := promptui.Select{
+		Label: msg,
+		Items: []string{"yes", "no"},
+	}
+	_, value, err := prompt.Run()
+	if err != nil {
+		return err
+	}
+	if value == "yes" {
+		return nil
+	}
+	return fmt.Errorf("user didn't confirm")
+}

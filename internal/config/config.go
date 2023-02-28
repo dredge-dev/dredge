@@ -17,6 +17,12 @@ const (
 	INSERT_UNIQUE     = "unique"
 	RUNTIME_NATIVE    = "native"
 	RUNTIME_CONTAINER = "container"
+	LOG_FATAL         = "fatal"
+	LOG_ERROR         = "error"
+	LOG_WARN          = "warn"
+	LOG_INFO          = "info"
+	LOG_DEBUG         = "debug"
+	LOG_TRACE         = "trace"
 )
 
 type DredgeFile struct {
@@ -84,6 +90,9 @@ type Step struct {
 	EditDredgeFile *EditDredgeFileStep `yaml:"edit_dredgefile,omitempty"`
 	If             *IfStep             `yaml:",omitempty"`
 	Execute        *ExecuteStep        `yaml:",omitempty"`
+	Set            *SetStep            `yaml:",omitempty"`
+	Log            *LogStep            `yaml:",omitempty"`
+	Confirm        *ConfirmStep        `yaml:",omitempty"`
 }
 
 type ShellStep struct {
@@ -124,6 +133,17 @@ type ExecuteStep struct {
 	Resource string
 	Command  string
 	Register string `yaml:",omitempty"`
+}
+
+type SetStep map[string]string
+
+type LogStep struct {
+	Level   string
+	Message string
+}
+
+type ConfirmStep struct {
+	Message string
 }
 
 type Resources map[string]Resource

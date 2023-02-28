@@ -456,13 +456,75 @@ func TestStepValidate(t *testing.T) {
 			},
 			errorMsg: "command field is required for execute",
 		},
-		"exeucte without command": {
+		"execute without command": {
 			step: Step{
 				Execute: &ExecuteStep{
 					Command: "get",
 				},
 			},
 			errorMsg: "resource field is required for execute",
+		},
+		"set": {
+			step: Step{
+				Set: &SetStep{
+					"key": "value",
+				},
+			},
+			errorMsg: "",
+		},
+		"set without values": {
+			step: Step{
+				Set: &SetStep{},
+			},
+			errorMsg: "at least 1 key/value pair is required for set",
+		},
+		"log": {
+			step: Step{
+				Log: &LogStep{
+					Level:   LOG_INFO,
+					Message: "hello",
+				},
+			},
+			errorMsg: "",
+		},
+		"log with invalid level": {
+			step: Step{
+				Log: &LogStep{
+					Level:   "bad",
+					Message: "hello",
+				},
+			},
+			errorMsg: "unknown level in log: bad (valid options are: fatal, error, warn, info, debug, trace)",
+		},
+		"log without level": {
+			step: Step{
+				Log: &LogStep{
+					Message: "hello",
+				},
+			},
+			errorMsg: "unknown level in log:  (valid options are: fatal, error, warn, info, debug, trace)",
+		},
+		"log without message": {
+			step: Step{
+				Log: &LogStep{
+					Level: LOG_INFO,
+				},
+			},
+			errorMsg: "message field is required for log",
+		},
+		"confirm": {
+			step: Step{
+				Confirm: &ConfirmStep{
+					Message: "Do you want to?",
+				},
+			},
+			errorMsg: "",
+		},
+		"confirm without message": {
+			step: Step{
+				Confirm: &ConfirmStep{},
+			},
+			errorMsg: "message field is required for confirm",
 		},
 	}
 
