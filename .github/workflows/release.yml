@@ -49,3 +49,4 @@ jobs:
             drg-linux-arm64
             drg-darwin-amd64
             drg-darwin-arm64
+            assets/install.sh
