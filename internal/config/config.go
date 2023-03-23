@@ -17,6 +17,12 @@ const (
 	INSERT_UNIQUE     = "unique"
 	RUNTIME_NATIVE    = "native"
 	RUNTIME_CONTAINER = "container"
+	LOG_FATAL         = "fatal"
+	LOG_ERROR         = "error"
+	LOG_WARN          = "warn"
+	LOG_INFO          = "info"
+	LOG_DEBUG         = "debug"
+	LOG_TRACE         = "trace"
 )
 
 type DredgeFile struct {
@@ -24,6 +30,7 @@ type DredgeFile struct {
 	Runtimes  []Runtime  `yaml:",omitempty"`
 	Workflows []Workflow `yaml:",omitempty"`
 	Buckets   []Bucket   `yaml:",omitempty"`
+	Resources Resources  `yaml:",omitempty"`
 }
 
 type Variables map[string]string
@@ -32,11 +39,12 @@ type SourcePath string
 type Runtime struct {
 	Name        string
 	Type        string
-	Image       string   `yaml:",omitempty"`
-	Home        string   `yaml:",omitempty"`
-	Cache       []string `yaml:",omitempty"`
-	GlobalCache []string `yaml:"global_cache,omitempty"`
-	Ports       []string `yaml:",omitempty"`
+	Image       string            `yaml:",omitempty"`
+	Home        string            `yaml:",omitempty"`
+	Cache       []string          `yaml:",omitempty"`
+	GlobalCache []string          `yaml:"global_cache,omitempty"`
+	Ports       []string          `yaml:",omitempty"`
+	EnvVars     map[string]string `yaml:",omitempty"`
 }
 
 type Bucket struct {
@@ -81,6 +89,10 @@ type Step struct {
 	Browser        *BrowserStep        `yaml:",omitempty"`
 	EditDredgeFile *EditDredgeFileStep `yaml:"edit_dredgefile,omitempty"`
 	If             *IfStep             `yaml:",omitempty"`
+	Execute        *ExecuteStep        `yaml:",omitempty"`
+	Set            *SetStep            `yaml:",omitempty"`
+	Log            *LogStep            `yaml:",omitempty"`
+	Confirm        *ConfirmStep        `yaml:",omitempty"`
 }
 
 type ShellStep struct {
@@ -117,6 +129,32 @@ type IfStep struct {
 	Steps []Step `yaml:",omitempty"`
 }
 
+type ExecuteStep struct {
+	Resource string
+	Command  string
+	Register string `yaml:",omitempty"`
+}
+
+type SetStep map[string]string
+
+type LogStep struct {
+	Level   string
+	Message string
+}
+
+type ConfirmStep struct {
+	Message string
+}
+
+type Resources map[string]Resource
+
+type Resource []ResourceProvider
+
+type ResourceProvider struct {
+	Provider string
+	Config   map[string]string `yaml:",omitempty"`
+}
+
 func NewDredgeFile(buf []byte) (*DredgeFile, error) {
 	dredgeFile := &DredgeFile{}
 	err := yaml.Unmarshal(buf, dredgeFile)
@@ -133,7 +171,7 @@ func NewDredgeFile(buf []byte) (*DredgeFile, error) {
 func WriteDredgeFile(dredgeFile *DredgeFile, filename SourcePath) error {
 	f := string(filename)
 	if !strings.HasPrefix(f, "./") {
-		return fmt.Errorf("Cannot write to non-local file %s", f)
+		return fmt.Errorf("cannot write to non-local file %s", f)
 	}
 
 	file, err := os.OpenFile(f, os.O_CREATE|os.O_WRONLY, 0644)

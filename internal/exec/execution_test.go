@@ -53,7 +53,7 @@ func TestNewExec(t *testing.T) {
 
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
-		d, err := NewExec(test.source)
+		d, err := NewExec(test.source, nil, nil)
 		if test.dredgeFile == nil {
 			assert.Nil(t, d)
 		} else {
@@ -113,7 +113,7 @@ func TestGetWorkflow(t *testing.T) {
 		"third is in default bucket": {
 			bucketName:   "",
 			workflowName: "third",
-			errMsg:       "Could not find workflow /third",
+			errMsg:       "could not find workflow /third",
 		},
 		"third should be in b1": {
 			bucketName:   "b1",
@@ -123,7 +123,7 @@ func TestGetWorkflow(t *testing.T) {
 		"third should not be in b2": {
 			bucketName:   "b2",
 			workflowName: "third",
-			errMsg:       "Could not find workflow b2/third",
+			errMsg:       "could not find workflow b2/third",
 		},
 		"fourth should be in b2": {
 			bucketName:   "b2",
@@ -133,17 +133,17 @@ func TestGetWorkflow(t *testing.T) {
 		"fifth does not exist in default": {
 			bucketName:   "",
 			workflowName: "fifth",
-			errMsg:       "Could not find workflow /fifth",
+			errMsg:       "could not find workflow /fifth",
 		},
 		"fifth does not exist in b1": {
 			bucketName:   "b1",
 			workflowName: "fifth",
-			errMsg:       "Could not find workflow b1/fifth",
+			errMsg:       "could not find workflow b1/fifth",
 		},
 		"bucket not found": {
 			bucketName:   "b3",
 			workflowName: "first",
-			errMsg:       "Could not find workflow b3/first",
+			errMsg:       "could not find workflow b3/first",
 		},
 	}
 
@@ -184,7 +184,7 @@ func TestGetBucket(t *testing.T) {
 		},
 		"b3 not found": {
 			bucketName: "b3",
-			errMsg:     "Could not find bucket b3",
+			errMsg:     "could not find bucket b3",
 		},
 	}
 

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/dredge-dev/dredge/internal/config"
 	"github.com/stretchr/testify/assert"
@@ -66,4 +67,100 @@ func TestAddVariables(t *testing.T) {
 	assert.Equal(t, "set", env["first"])
 	assert.Equal(t, "from vars", env["second"])
 	assert.Equal(t, len(env), 2)
+}
+
+func TestTemplate(t *testing.T) {
+	tests := map[string]struct {
+		input  string
+		env    Env
+		output string
+		err    error
+	}{
+		"no replaces": {
+			input:  "test",
+			env:    NewEnv(),
+			output: "test",
+			err:    nil,
+		},
+		"variable": {
+			input:  "hello {{ .test }}",
+			env:    Env{"test": "world"},
+			output: "hello world",
+			err:    nil,
+		},
+		"replace function": {
+			input:  "{{replace .test \" \" \"-\" }}",
+			env:    Env{"test": "hello world"},
+			output: "hello-world",
+			err:    nil,
+		},
+		"date function": {
+			input:  "{{ date \"2006-01-02\" }}",
+			env:    Env{},
+			output: time.Now().Format("2006-01-02"),
+			err:    nil,
+		},
+		"join with empty": {
+			input:  "{{ join .arr .new \",\" }}",
+			env:    Env{"new": "5000", "arr": ""},
+			output: "5000",
+			err:    nil,
+		},
+		"join empty": {
+			input:  "{{ join .arr .new \",\" }}",
+			env:    Env{"new": "", "arr": "5000"},
+			output: "5000",
+			err:    nil,
+		},
+		"join with one": {
+			input:  "{{ join .arr .new \",\" }}",
+			env:    Env{"new": "5000", "arr": "8000"},
+			output: "8000,5000",
+			err:    nil,
+		},
+		"join to list": {
+			input:  "{{ join .arr .new \",\" }}",
+			env:    Env{"new": "5000", "arr": "80,1234"},
+			output: "80,1234,5000",
+			err:    nil,
+		},
+		"isTrue true": {
+			input:  "{{ if isTrue .val }}Hello{{ end }} {{ if isTrue .val2 }}world{{ end }}",
+			env:    Env{"val": "true", "val2": "yes"},
+			output: "Hello world",
+			err:    nil,
+		},
+		"isTrue false": {
+			input:  "{{ if isTrue .val }}Hello{{ end }} {{ if isTrue .val2 }}world{{ end }}",
+			env:    Env{"val": "false", "val2": "no"},
+			output: " ",
+			err:    nil,
+		},
+		"isFalse true": {
+			input:  "{{ if isFalse .val }}Hello{{ end }} {{ if isFalse .val2 }}world{{ end }}",
+			env:    Env{"val": "false", "val2": "no"},
+			output: "Hello world",
+			err:    nil,
+		},
+		"isFalse false": {
+			input:  "{{ if isFalse .val }}Hello{{ end }} {{ if isFalse .val2 }}world{{ end }}",
+			env:    Env{"val": "true", "val2": "yes"},
+			output: " ",
+			err:    nil,
+		},
+		"trimSpace": {
+			input:  "{{ trimSpace \" hello \" }}",
+			env:    NewEnv(),
+			output: "hello",
+			err:    nil,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Logf("Running test case %s", testName)
+		e := &DredgeExec{Env: test.env}
+		output, err := e.Template(test.input)
+		assert.Equal(t, test.output, output)
+		assert.Equal(t, test.err, err)
+	}
 }

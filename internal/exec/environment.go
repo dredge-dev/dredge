@@ -10,7 +10,7 @@ import (
 	"github.com/manifoldco/promptui"
 )
 
-type Env map[string]string
+type Env map[string]interface{}
 
 func NewEnv() Env {
 	return Env{}
@@ -21,6 +21,12 @@ func (e Env) AddVariables(v config.Variables) {
 		if _, ok := e[key]; !ok {
 			e[key] = value
 		}
+	}
+}
+
+func (e Env) AddInputs(inputs map[string]string) {
+	for key, value := range inputs {
+		e[key] = value
 	}
 }
 
@@ -53,12 +59,12 @@ func (e Env) AddInput(input config.Input, reader io.Reader) error {
 			}
 		}
 		if !input.HasValue(value) {
-			return fmt.Errorf("Invalid value (%s) for Input %s", value, input.Name)
+			return fmt.Errorf("invalid value (%s) for Input %s", value, input.Name)
 		}
 		e[input.Name] = value
 		return nil
 	}
-	return fmt.Errorf("Type %s not implemented", input.Type)
+	return fmt.Errorf("type %s not implemented", input.Type)
 }
 
 func (e Env) Clone() Env {

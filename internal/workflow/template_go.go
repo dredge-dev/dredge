@@ -13,7 +13,7 @@ func insertGo(insert *config.Insert, currentContent, text string) (string, error
 	} else if strings.HasPrefix(insert.Section, "func") {
 		return insertInFuncGo(insert, currentContent, text), nil
 	} else {
-		return "", fmt.Errorf("Unknown section %s (only import and func are supported in go)", insert.Section)
+		return "", fmt.Errorf("unknown section %s (only import and func are supported in go)", insert.Section)
 	}
 }
 

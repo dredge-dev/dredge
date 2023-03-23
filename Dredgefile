@@ -1,64 +1,21 @@
-variables:
-  GO_VERSION: "1.17"
-runtimes:
-  - name: build-container
-    type: container
-    image: golang:{{ .GO_VERSION }}
-    cache:
-      - /go
-  - name: gh-cli
-    type: container
-    image: ghcr.io/supportpal/github-gh-cli
-    cache:
-      - /root/.config/gh
+resources:
+  release:
+    - provider: github-releases
+  issue:
+    - provider: github-issues
 workflows:
   - name: build
-    description: Build the executable
+    description: Build the drg executable
     steps:
       - shell:
           cmd: go build -o drg
-          runtime: build-container
-  - name: run
-    description: Run the executable
-    steps:
-      - shell:
-          cmd: ./drg
-          runtime: build-container
   - name: test
     description: Run the tests
     steps:
       - shell:
           cmd: go test ./...
-          runtime: build-container
   - name: install
     description: Install drg
     steps:
       - shell:
           cmd: cp drg /usr/local/bin
-buckets:
-  - name: issue
-    description: List, create, update issues for this project
-    workflows:
-      - name: open
-        description: Open the issues ui
-        steps:
-          - browser:
-              url: https://github.com/dredge-dev/dredge/issues
-      - name: list
-        description: List the open issues
-        steps:
-          - shell:
-              cmd: /bin/bash -c "gh auth status 2>/dev/null || gh auth login --hostname github.com"
-              runtime: gh-cli
-          - shell:
-              cmd: gh issue list
-              runtime: gh-cli
-      - name: create
-        description: Create a new issue
-        steps:
-          - shell:
-              cmd: /bin/bash -c "gh auth status 2>/dev/null || gh auth login --hostname github.com"
-              runtime: gh-cli
-          - shell:
-              cmd: gh issue create
-              runtime: gh-cli

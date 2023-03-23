@@ -1,48 +1,32 @@
-# Dredge - Toil less, code more
+# Dredge - Automates software DevOps workflows
 
-Dredge automates software development workflows.
+Dredge is a open-source tool that seamlessly integrates with your DevOps tools to streamline and standardize your development and operations workflows, helping your team to work more efficiently and effectively.
+
+[![cast](https://asciinema.org/a/564048.png)](https://asciinema.org/a/564048)
+
+## Installation
+
+Install the `drg` command line tool and initialize the project.
+
+```bash
+curl https://dredge.dev/install.sh | bash
+drg init
+```
 
 ## Dredgefile
 
-Define a Dredgefile to put your development workflows into code:
+A Dredgefile contains resources and workflows. See [the docs](https://dredge.dev/docs/dredgefile/) for more information.
 
 ```
+resources:
+  release:
+    - provider: github-releases
 workflows:
 - name: hello
   description: Say hello
   steps:
   - shell:
       cmd: echo hello
-```
-
-## Installation
-
-### Linux
-
-```
-curl -L https://github.com/dredge-dev/dredge/releases/latest/download/drg-linux-amd64 > drg
-chmod +x drg
-mv drg /usr/local/bin/
-```
-
-### macOS
-
-```
-curl -L https://github.com/dredge-dev/dredge/releases/latest/download/drg-darwin-amd64 > drg
-chmod +x drg
-mv drg /usr/local/bin/
-```
-
-### ARM
-
-ARM binaries are available in [the GitHub releases](https://github.com/dredge-dev/dredge/releases).
-
-## Try it out
-
-Create a Dredgefile as shown above and run Dredge:
-
-```
-drg
 ```
 
 ## License
