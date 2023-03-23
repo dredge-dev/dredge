@@ -236,7 +236,7 @@ func TestExecuteLogStep(t *testing.T) {
 	c := &CallbacksMock{
 		MLog: func(level api.LogLevel, msg string, args ...interface{}) error {
 			assert.Equal(t, api.Info, level)
-			message = fmt.Sprintf(msg, args)
+			message = fmt.Sprintf(msg, args...)
 			return nil
 		},
 	}
@@ -265,7 +265,7 @@ func TestExecuteLogStepTemplated(t *testing.T) {
 	c := &CallbacksMock{
 		MLog: func(level api.LogLevel, msg string, args ...interface{}) error {
 			assert.Equal(t, api.Info, level)
-			message = fmt.Sprintf(msg, args)
+			message = fmt.Sprintf(msg, args...)
 			return nil
 		},
 	}
