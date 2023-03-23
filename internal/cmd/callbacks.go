@@ -12,12 +12,15 @@ import (
 )
 
 type CliCallbacks struct {
-	Reader io.Reader
-	Writer io.Writer
+	Reader  io.Reader
+	Writer  io.Writer
+	Verbose *bool
 }
 
-func (c CliCallbacks) Log(level api.LogLevel, msg string) error {
-	fmt.Fprintf(c.Writer, "[%s] %s %s\n", time.Now().Format(time.RFC822), level, msg)
+func (c CliCallbacks) Log(level api.LogLevel, msg string, args ...interface{}) error {
+	if *c.Verbose || (level != api.Debug && level != api.Trace) {
+		fmt.Fprintf(c.Writer, "[%s] %s %s\n", time.Now().Format(time.RFC3339), level, fmt.Sprintf(msg, args...))
+	}
 	return nil
 }
 
@@ -62,17 +65,17 @@ func (c CliCallbacks) OpenUrl(url string) error {
 	return browser.OpenURL(url)
 }
 
-func (c CliCallbacks) Confirm(msg string) error {
+func (c CliCallbacks) Confirm(msg string, args ...interface{}) (bool, error) {
 	prompt := promptui.Select{
-		Label: msg,
+		Label: fmt.Sprintf(msg, args...),
 		Items: []string{"yes", "no"},
 	}
 	_, value, err := prompt.Run()
 	if err != nil {
-		return err
+		return false, err
 	}
 	if value == "yes" {
-		return nil
+		return true, nil
 	}
-	return fmt.Errorf("user didn't confirm")
+	return false, nil
 }

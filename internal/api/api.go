@@ -32,10 +32,10 @@ type Type struct {
 }
 
 type UserInteractionCallbacks interface {
-	Log(level LogLevel, msg string) error
+	Log(level LogLevel, msg string, args ...interface{}) error
+	Confirm(msg string, args ...interface{}) (bool, error)
 	RequestInput(inputRequests []InputRequest) (map[string]string, error)
 	OpenUrl(url string) error
-	Confirm(msg string) error
 }
 
 type ExecutionCallbacks interface {
@@ -48,6 +48,7 @@ type DredgefileCallbacks interface {
 	AddVariablesToDredgefile(variable map[string]string) error
 	AddWorkflowToDredgefile(workflow config.Workflow) error
 	AddBucketToDredgefile(bucket config.Bucket) error
+	AddProviderToDredgefile(resource, provider string, providerConfig map[string]string) error
 	RelativePathFromDredgefile(path string) (string, error)
 }
 
@@ -69,7 +70,7 @@ const (
 )
 
 func (l LogLevel) String() string {
-	return [...]string{"Fatal", "Error", "Warn", "Info", "Debug", "Trace"}[l]
+	return [...]string{"FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"}[l]
 }
 
 type NoResult struct{}

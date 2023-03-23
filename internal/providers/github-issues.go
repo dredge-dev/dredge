@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	"github.com/dredge-dev/dredge/internal/api"
 )
@@ -16,6 +17,31 @@ type GithubIssuesProvider struct {
 
 func (g *GithubIssuesProvider) Name() string {
 	return "github-issues"
+}
+
+func (g *GithubIssuesProvider) Discover(callbacks api.Callbacks) error {
+	cmd := exec.Command("/bin/bash", "-c", "git remote -v")
+	output, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+	if strings.Contains(string(output), "github.com") {
+		confirmed, err := callbacks.Confirm("GitHub repo detected, do you use GitHub issues?")
+		if err != nil {
+			return err
+		}
+		if confirmed {
+			err = callbacks.Log(api.Info, "Adding github-issues as a provider")
+			if err != nil {
+				return err
+			}
+			err = callbacks.AddProviderToDredgefile("issue", "github-issues", nil)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (g *GithubIssuesProvider) Init(config map[string]string) error {

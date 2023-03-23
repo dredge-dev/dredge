@@ -9,21 +9,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func initWorkflowsCommands(e *exec.DredgeExec, rootCmd *cobra.Command) error {
+func addWorkflowsCommands(e *exec.DredgeExec, rootCmd *cobra.Command) error {
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "exec <source>",
 		Short: "Execute a remote workflow",
 		Long:  "Execute a workflow from a remote Dredgefile",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runExecCommand(e, args)
-		},
-	})
-	rootCmd.AddCommand(&cobra.Command{
-		Use:   "init <source>",
-		Short: "Run a remote init workflow",
-		Long:  "Execute the init workflow from a remote Dredgefile",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runInitCommand(e, args)
 		},
 	})
 	return addWorkflows(e, rootCmd)
@@ -90,24 +82,6 @@ func createBucketCommand(e *exec.DredgeExec, b *workflow.Bucket) (*cobra.Command
 		command.AddCommand(subCmd)
 	}
 	return command, nil
-}
-
-func runInitCommand(e *exec.DredgeExec, args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("not enough arguments: missing source")
-	}
-
-	de, err := e.Import(config.SourcePath(args[0]))
-	if err != nil {
-		return err
-	}
-
-	w, err := de.GetWorkflow("", "init")
-	if err != nil {
-		return err
-	}
-
-	return w.Execute()
 }
 
 func runExecCommand(e *exec.DredgeExec, args []string) error {

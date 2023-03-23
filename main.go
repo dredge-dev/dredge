@@ -17,7 +17,7 @@ func main() {
 	var de *exec.DredgeExec
 
 	source := DefaultDredgefilePath
-	c := cmd.CliCallbacks{Reader: os.Stdin, Writer: os.Stdout}
+	c := cmd.CliCallbacks{Reader: os.Stdin, Writer: os.Stdout, Verbose: &cmd.Verbose}
 	rd := resource.GetDefaultResourceDefinitions()
 
 	if _, err := os.Stat(source); errors.Is(err, os.ErrNotExist) {

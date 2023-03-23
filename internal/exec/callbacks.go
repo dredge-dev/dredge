@@ -11,8 +11,8 @@ import (
 	"github.com/dredge-dev/dredge/internal/config"
 )
 
-func (e *DredgeExec) Log(level api.LogLevel, msg string) error {
-	return e.callbacks.Log(level, msg)
+func (e *DredgeExec) Log(level api.LogLevel, msg string, args ...interface{}) error {
+	return e.callbacks.Log(level, msg, args...)
 }
 
 func (e *DredgeExec) RequestInput(inputRequests []api.InputRequest) (map[string]string, error) {
@@ -46,8 +46,8 @@ func (e *DredgeExec) OpenUrl(url string) error {
 	return e.callbacks.OpenUrl(url)
 }
 
-func (e *DredgeExec) Confirm(msg string) error {
-	return e.callbacks.Confirm(msg)
+func (e *DredgeExec) Confirm(msg string, args ...interface{}) (bool, error) {
+	return e.callbacks.Confirm(msg, args...)
 }
 
 func (e *DredgeExec) ExecuteResourceCommand(resourceName string, commandName string) (*api.CommandOutput, error) {
@@ -172,6 +172,37 @@ func (e *DredgeExec) AddBucketToDredgefile(b config.Bucket) error {
 		df.Buckets = append(df.Buckets, b)
 	}
 
+	return validateAndWriteDredgefile(df, rootExec.Source)
+}
+
+func (e *DredgeExec) AddProviderToDredgefile(resource, provider string, providerConfig map[string]string) error {
+	if resource == "" {
+		return fmt.Errorf("empty resource cannot be added to Dredgefile")
+	}
+	if provider == "" {
+		return fmt.Errorf("empty provider cannot be added to Dredgefile")
+	}
+
+	rootExec, df := e.getRootExecAndDredgeFile()
+
+	if e.DredgeFile.Resources == nil {
+		e.DredgeFile.Resources = make(config.Resources)
+	}
+
+	if _, ok := e.DredgeFile.Resources[resource]; !ok {
+		e.DredgeFile.Resources[resource] = []config.ResourceProvider{}
+	}
+
+	for _, p := range e.DredgeFile.Resources[resource] {
+		if p.Provider == provider {
+			return fmt.Errorf("provider '%s' already defined", provider)
+		}
+	}
+
+	e.DredgeFile.Resources[resource] = append(e.DredgeFile.Resources[resource], config.ResourceProvider{
+		Provider: provider,
+		Config:   providerConfig,
+	})
 	return validateAndWriteDredgefile(df, rootExec.Source)
 }
 

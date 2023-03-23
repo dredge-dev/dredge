@@ -72,3 +72,7 @@ func (e *DredgeExec) GetResource(resourceName string) (*resource.Resource, error
 
 	return resource.NewResource(rd, r)
 }
+
+func (e *DredgeExec) GetProviders() ([]resource.Provider, error) {
+	return resource.GetProviders()
+}

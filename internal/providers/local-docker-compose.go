@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -22,6 +23,86 @@ type LocalDockerComposeProvider struct {
 	absolutePath string
 }
 
+func (l *LocalDockerComposeProvider) Name() string {
+	return "local-docker-compose"
+}
+
+func (l *LocalDockerComposeProvider) Discover(callbacks api.Callbacks) error {
+	path := "docker-compose.yml"
+	info, err := os.Stat(path)
+	if err == nil && info.Mode().IsRegular() {
+		confirmed, err := callbacks.Confirm("%s detected, do you want to add local-docker-compose?", path)
+		if err != nil {
+			return err
+		}
+		if confirmed {
+			images, err := getImagesInDockerComposeFile(path)
+			if err != nil {
+				return err
+			}
+			if len(images) == 0 {
+				return fmt.Errorf("could not find image in docker-compose.yml")
+			}
+			var image string
+			if len(images) > 1 {
+				output, err := callbacks.RequestInput([]api.InputRequest{
+					{
+						Name:        "image",
+						Description: "Select the image for your service",
+						Type:        api.Select,
+						Values:      images,
+					},
+				})
+				if err != nil {
+					return err
+				}
+				image = output["image"]
+			} else {
+				image = images[0]
+			}
+			err = callbacks.Log(api.Info, "Adding local-docker-compose as a provider")
+			if err != nil {
+				return err
+			}
+			err = callbacks.AddProviderToDredgefile("deploy", "local-docker-compose", map[string]string{
+				"path":  ".",
+				"env":   "local",
+				"image": image,
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func getImagesInDockerComposeFile(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var images []string
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "image:") {
+			parts := strings.Split(line, ":")
+			image := strings.TrimSpace(parts[1])
+			images = append(images, image)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return images, nil
+}
+
 func (l *LocalDockerComposeProvider) Init(config map[string]string) error {
 	err := checkConfig(config, []string{"env", "path", "image"})
 	if err != nil {
@@ -33,10 +114,6 @@ func (l *LocalDockerComposeProvider) Init(config map[string]string) error {
 	l.Proto = config["proto"]
 	l.absolutePath, err = l.getAbsolutePath()
 	return err
-}
-
-func (l *LocalDockerComposeProvider) Name() string {
-	return "local-docker-compose"
 }
 
 func (l *LocalDockerComposeProvider) ExecuteCommand(commandName string, callbacks api.Callbacks) (interface{}, error) {
@@ -186,21 +263,27 @@ func (l *LocalDockerComposeProvider) setInstances(instances int, c api.Callbacks
 	return l.stop()
 }
 
+func (l *LocalDockerComposeProvider) compose(command string) ([]byte, error) {
+	cd := ""
+	if len(l.Path) > 0 {
+		cd = fmt.Sprintf("cd %s && ", l.Path)
+	}
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("%sdocker-compose %s", cd, command))
+	return cmd.Output()
+}
+
 func (l *LocalDockerComposeProvider) restart() error {
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("cd %s && docker-compose restart", l.Path))
-	_, err := cmd.Output()
+	_, err := l.compose("restart")
 	return err
 }
 
 func (l *LocalDockerComposeProvider) start() error {
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("cd %s && docker-compose up -d", l.Path))
-	_, err := cmd.Output()
+	_, err := l.compose("docker-compose up -d")
 	return err
 }
 
 func (l *LocalDockerComposeProvider) stop() error {
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("cd %s && docker-compose down", l.Path))
-	_, err := cmd.Output()
+	_, err := l.compose("docker-compose down")
 	return err
 }
 
@@ -217,8 +300,7 @@ func (l *LocalDockerComposeProvider) getInstances() (int, error) {
 }
 
 func (l *LocalDockerComposeProvider) ps() ([]string, error) {
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("cd %s && docker-compose ps", l.Path))
-	output, err := cmd.Output()
+	output, err := l.compose("ps")
 	if err != nil {
 		return nil, err
 	}

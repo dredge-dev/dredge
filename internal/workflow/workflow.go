@@ -185,5 +185,12 @@ func (workflow *Workflow) executeConfirmStep(confirm *config.ConfirmStep) error 
 	if err != nil {
 		return err
 	}
-	return workflow.Callbacks.Confirm(msg)
+	confirmed, err := workflow.Callbacks.Confirm(msg)
+	if err != nil {
+		return err
+	}
+	if !confirmed {
+		return fmt.Errorf("user did not confirm")
+	}
+	return nil
 }

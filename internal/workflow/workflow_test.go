@@ -15,23 +15,24 @@ import (
 )
 
 type CallbacksMock struct {
-	MLog                        func(level api.LogLevel, msg string) error
+	MLog                        func(level api.LogLevel, msg string, args ...interface{}) error
 	MRequestInput               func(inputRequests []api.InputRequest) (map[string]string, error)
 	MOpenUrl                    func(url string) error
-	MConfirm                    func(msg string) error
+	MConfirm                    func(msg string, args ...interface{}) (bool, error)
 	MExecuteResourceCommand     func(resource string, command string) (*api.CommandOutput, error)
 	MSetEnv                     func(name string, value interface{}) error
 	MTemplate                   func(input string) (string, error)
 	MAddVariablesToDredgefile   func(variable map[string]string) error
 	MAddWorkflowToDredgefile    func(workflow config.Workflow) error
 	MAddBucketToDredgefile      func(bucket config.Bucket) error
+	MAddProviderToDredgefile    func(resource, provider string, providerConfig map[string]string) error
 	MRelativePathFromDredgefile func(path string) (string, error)
 	Env                         map[string]interface{}
 }
 
-func (c *CallbacksMock) Log(level api.LogLevel, msg string) error {
+func (c *CallbacksMock) Log(level api.LogLevel, msg string, args ...interface{}) error {
 	if c.MLog != nil {
-		return c.MLog(level, msg)
+		return c.MLog(level, msg, args...)
 	}
 	return fmt.Errorf("Log not mocked")
 }
@@ -51,11 +52,11 @@ func (c *CallbacksMock) OpenUrl(url string) error {
 	}
 	return fmt.Errorf("OpenUrl not mocked")
 }
-func (c *CallbacksMock) Confirm(msg string) error {
+func (c *CallbacksMock) Confirm(msg string, args ...interface{}) (bool, error) {
 	if c.MConfirm != nil {
-		return c.MConfirm(msg)
+		return c.MConfirm(msg, args...)
 	}
-	return fmt.Errorf("Confirm not mocked")
+	return false, fmt.Errorf("Confirm not mocked")
 }
 func (c *CallbacksMock) ExecuteResourceCommand(resource string, command string) (*api.CommandOutput, error) {
 	if c.MExecuteResourceCommand != nil {
@@ -104,6 +105,12 @@ func (c *CallbacksMock) AddBucketToDredgefile(bucket config.Bucket) error {
 		return c.MAddBucketToDredgefile(bucket)
 	}
 	return fmt.Errorf("AddBucketToDredgefile not mocked")
+}
+func (c *CallbacksMock) AddProviderToDredgefile(resource, provider string, providerConfig map[string]string) error {
+	if c.MAddProviderToDredgefile != nil {
+		return c.MAddProviderToDredgefile(resource, provider, providerConfig)
+	}
+	return fmt.Errorf("AddProviderToDredgefile not mocked")
 }
 func (c *CallbacksMock) RelativePathFromDredgefile(path string) (string, error) {
 	if c.MRelativePathFromDredgefile != nil {
@@ -227,9 +234,9 @@ func TestExecuteSetStepTemplated(t *testing.T) {
 func TestExecuteLogStep(t *testing.T) {
 	message := ""
 	c := &CallbacksMock{
-		MLog: func(level api.LogLevel, msg string) error {
+		MLog: func(level api.LogLevel, msg string, args ...interface{}) error {
 			assert.Equal(t, api.Info, level)
-			message = msg
+			message = fmt.Sprintf(msg, args)
 			return nil
 		},
 	}
@@ -256,9 +263,9 @@ func TestExecuteLogStep(t *testing.T) {
 func TestExecuteLogStepTemplated(t *testing.T) {
 	message := ""
 	c := &CallbacksMock{
-		MLog: func(level api.LogLevel, msg string) error {
+		MLog: func(level api.LogLevel, msg string, args ...interface{}) error {
 			assert.Equal(t, api.Info, level)
-			message = msg
+			message = fmt.Sprintf(msg, args)
 			return nil
 		},
 	}
@@ -290,9 +297,9 @@ func TestExecuteLogStepTemplated(t *testing.T) {
 func TestExecuteConfirmStep(t *testing.T) {
 	message := ""
 	c := &CallbacksMock{
-		MConfirm: func(msg string) error {
-			message = msg
-			return nil
+		MConfirm: func(msg string, args ...interface{}) (bool, error) {
+			message = fmt.Sprintf(msg, args...)
+			return true, nil
 		},
 	}
 
@@ -317,9 +324,9 @@ func TestExecuteConfirmStep(t *testing.T) {
 func TestExecuteConfirmStepTemplated(t *testing.T) {
 	message := ""
 	c := &CallbacksMock{
-		MConfirm: func(msg string) error {
-			message = msg
-			return nil
+		MConfirm: func(msg string, args ...interface{}) (bool, error) {
+			message = fmt.Sprintf(msg, args...)
+			return true, nil
 		},
 	}
 

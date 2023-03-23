@@ -21,6 +21,31 @@ func (g *GithubReleasesProvider) Name() string {
 	return "github-releases"
 }
 
+func (g *GithubReleasesProvider) Discover(callbacks api.Callbacks) error {
+	cmd := exec.Command("/bin/bash", "-c", "git remote -v")
+	output, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+	if strings.Contains(string(output), "github.com") {
+		confirmed, err := callbacks.Confirm("GitHub repo detected, do you use GitHub releases?")
+		if err != nil {
+			return err
+		}
+		if confirmed {
+			err = callbacks.Log(api.Info, "Adding github-release as a provider")
+			if err != nil {
+				return err
+			}
+			err = callbacks.AddProviderToDredgefile("release", "github-releases", nil)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (g *GithubReleasesProvider) Init(config map[string]string) error {
 	return nil
 }

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 ARTIFACT_PATH="https://github.com/dredge-dev/dredge/releases/latest/download/"
 ARTIFACT_NAME="drg"
@@ -13,7 +14,7 @@ echo -e "
 |__/ |  \ |___ |__/ \\__> |___ 
 Automates DevOps workflows
 
-Installing the latest version of ${TTY_BOLD}${ARTIFACT_NAME}${TTY_NORMAL} in ${TTY_BOLD}${INSTALL_PATH}${TTY_NORMAL}
+Downloading the latest version of ${TTY_BOLD}${ARTIFACT_NAME}${TTY_NORMAL}
 "
 
 OS="$(uname)"
@@ -35,12 +36,11 @@ fi
 curl -fsSL "${ARTIFACT_PATH}${ARTIFACT_NAME}-${FLAVOR}" -o "${ARTIFACT_NAME}"
 chmod +x $ARTIFACT_NAME
 
-echo -e "Using ${TTY_BOLD}sudo${TTY_NORMAL} to install to $INSTALL_PATH, this might require your password."
+echo -e "Using ${TTY_BOLD}sudo${TTY_NORMAL} to install to ${TTY_BOLD}${INSTALL_PATH}${TTY_NORMAL}, this might require your password."
 sudo mv $ARTIFACT_NAME $INSTALL_PATH
 
 echo
 echo -e "${TTY_BOLD}Success!${TTY_NORMAL} You can now start using Dredge:"
 echo
-echo "  drg init          # initialize the project"
-echo "  drg add release   # add your first resource"
+echo "  drg init          # initialize Dredge in your code repo"
 echo

@@ -20,7 +20,7 @@ func GetResourcesHelp(e *exec.DredgeExec) string {
 	return "\n\nResources: " + strings.Join(resources, ", ")
 }
 
-func initResourceCommands(e *exec.DredgeExec, rootCmd *cobra.Command) error {
+func addResourceCommands(e *exec.DredgeExec, rootCmd *cobra.Command) error {
 	rootCmd.AddCommand(&cobra.Command{
 		Use:     "get <resource>",
 		Short:   "Get all resources of the provided type",

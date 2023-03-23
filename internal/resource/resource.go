@@ -15,6 +15,7 @@ type Resource struct {
 
 type Provider interface {
 	Name() string
+	Discover(callbacks api.Callbacks) error
 	Init(config map[string]string) error
 	ExecuteCommand(commandName string, callbacks api.Callbacks) (interface{}, error)
 }

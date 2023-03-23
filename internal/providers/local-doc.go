@@ -2,6 +2,7 @@ package providers
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -15,6 +16,31 @@ type LocalDocProvider struct {
 
 func (l *LocalDocProvider) Name() string {
 	return "local-doc"
+}
+
+func (l *LocalDocProvider) Discover(callbacks api.Callbacks) error {
+	for _, path := range []string{"docs", "documentation"} {
+		info, err := os.Stat(path)
+		if err == nil && info.IsDir() {
+			confirmed, err := callbacks.Confirm("Local docs in detected in %s, do you want to add local-docs?", path)
+			if err != nil {
+				return err
+			}
+			if confirmed {
+				err = callbacks.Log(api.Info, "Adding local-doc as a provider for %s", path)
+				if err != nil {
+					return err
+				}
+				err = callbacks.AddProviderToDredgefile("doc", "local-doc", map[string]string{
+					"path": path,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (l *LocalDocProvider) Init(config map[string]string) error {
